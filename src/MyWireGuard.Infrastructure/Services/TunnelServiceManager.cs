@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using MyWireGuard.Core.Abstractions;
 using MyWireGuard.Core.Models;
@@ -47,6 +46,7 @@ public sealed class TunnelServiceManager : ITunnelServiceManager
             var service = NativeMethods.OpenService(scm, GetServiceName(profile.Name), NativeMethods.ServiceAccessRights.AllAccess);
             if (service == IntPtr.Zero)
             {
+                CreateService(scm, profile.ConfigPath, start: false);
                 return Task.CompletedTask;
             }
 
@@ -72,7 +72,7 @@ public sealed class TunnelServiceManager : ITunnelServiceManager
     {
         cancellationToken.ThrowIfCancellationRequested();
         EnsureRuntimeAvailable();
-        AddOrStart(profile.ConfigPath ?? throw new InvalidOperationException("Config path is missing."));
+        InstallOrStart(profile.ConfigPath ?? throw new InvalidOperationException("Config path is missing."));
         logService.WriteInfo($"Start requested for tunnel '{profile.Name}'.");
         return Task.CompletedTask;
     }
@@ -156,13 +156,8 @@ public sealed class TunnelServiceManager : ITunnelServiceManager
         }
     }
 
-    private void AddOrStart(string configPath)
+    private void InstallOrStart(string configPath)
     {
-        var tunnelName = Path.GetFileNameWithoutExtension(configPath);
-        var shortName = GetServiceName(tunnelName);
-        var displayName = $"MyWireGuard: {tunnelName}";
-        var pathAndArgs = BuildServiceCommandLine(configPath);
-
         var scm = NativeMethods.OpenSCManager(null, null, NativeMethods.ScmAccessRights.AllAccess);
         if (scm == IntPtr.Zero)
         {
@@ -171,12 +166,15 @@ public sealed class TunnelServiceManager : ITunnelServiceManager
 
         try
         {
-            var service = NativeMethods.OpenService(scm, shortName, NativeMethods.ServiceAccessRights.AllAccess);
+            var service = NativeMethods.OpenService(scm, GetServiceName(Path.GetFileNameWithoutExtension(configPath)), NativeMethods.ServiceAccessRights.AllAccess);
             if (service != IntPtr.Zero)
             {
                 try
                 {
-                    ApplyServiceConfiguration(service, displayName, pathAndArgs);
+                    ApplyServiceConfiguration(
+                        service,
+                        $"MyWireGuard: {Path.GetFileNameWithoutExtension(configPath)}",
+                        BuildServiceCommandLine(configPath));
                     if (!NativeMethods.StartService(service, 0, null) && Marshal.GetLastWin32Error() != 1056)
                     {
                         throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -190,43 +188,53 @@ public sealed class TunnelServiceManager : ITunnelServiceManager
                 }
             }
 
-            service = NativeMethods.CreateService(
-                scm,
-                shortName,
-                displayName,
-                NativeMethods.ServiceAccessRights.AllAccess,
-                NativeMethods.ServiceType.Win32OwnProcess,
-                NativeMethods.ServiceStartType.AutoStart,
-                NativeMethods.ServiceError.Normal,
-                pathAndArgs,
-                null,
-                IntPtr.Zero,
-                ServiceDependencies,
-                null,
-                null);
-
-            if (service == IntPtr.Zero)
-            {
-                throw new Win32Exception(Marshal.GetLastWin32Error());
-            }
-
-            try
-            {
-                ApplyServiceConfiguration(service, displayName, pathAndArgs);
-
-                if (!NativeMethods.StartService(service, 0, null))
-                {
-                    throw new Win32Exception(Marshal.GetLastWin32Error());
-                }
-            }
-            finally
-            {
-                NativeMethods.CloseServiceHandle(service);
-            }
+            CreateService(scm, configPath, start: true);
         }
         finally
         {
             NativeMethods.CloseServiceHandle(scm);
+        }
+    }
+
+    private static void CreateService(IntPtr scm, string configPath, bool start)
+    {
+        var tunnelName = Path.GetFileNameWithoutExtension(configPath);
+        var shortName = $"WireGuardTunnel${tunnelName}";
+        var displayName = $"MyWireGuard: {tunnelName}";
+        var pathAndArgs = BuildServiceCommandLine(configPath);
+
+        var service = NativeMethods.CreateService(
+            scm,
+            shortName,
+            displayName,
+            NativeMethods.ServiceAccessRights.AllAccess,
+            NativeMethods.ServiceType.Win32OwnProcess,
+            NativeMethods.ServiceStartType.AutoStart,
+            NativeMethods.ServiceError.Normal,
+            pathAndArgs,
+            null,
+            IntPtr.Zero,
+            ServiceDependencies,
+            null,
+            null);
+
+        if (service == IntPtr.Zero)
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+        }
+
+        try
+        {
+            ApplyServiceConfiguration(service, displayName, pathAndArgs);
+
+            if (start && !NativeMethods.StartService(service, 0, null))
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+        }
+        finally
+        {
+            NativeMethods.CloseServiceHandle(service);
         }
     }
 
@@ -244,7 +252,7 @@ public sealed class TunnelServiceManager : ITunnelServiceManager
     private static string BuildServiceCommandLine(string configPath)
     {
         var serviceHostPath = ResolveServiceHostExecutablePath();
-        return $"\"{serviceHostPath}\" /service \"{configPath}\" {Process.GetCurrentProcess().Id}";
+        return $"\"{serviceHostPath}\" /service \"{configPath}\"";
     }
 
     private static void ApplyServiceConfiguration(IntPtr service, string displayName, string pathAndArgs)
