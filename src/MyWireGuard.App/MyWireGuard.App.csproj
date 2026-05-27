@@ -3,7 +3,6 @@
   <ItemGroup>
     <ProjectReference Include="..\MyWireGuard.Core\MyWireGuard.Core.csproj" />
     <ProjectReference Include="..\MyWireGuard.Infrastructure\MyWireGuard.Infrastructure.csproj" />
-    <ProjectReference Include="..\MyWireGuard.ServiceHost\MyWireGuard.ServiceHost.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -32,6 +31,12 @@
     <RuntimeDll Include="..\..\runtime\*.dll" Condition="Exists('..\..\runtime')" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <ServiceHostProject>..\MyWireGuard.ServiceHost\MyWireGuard.ServiceHost.csproj</ServiceHostProject>
+    <ServiceHostBuildOutputDir>..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\</ServiceHostBuildOutputDir>
+    <ServiceHostBuildOutputDir Condition="'$(RuntimeIdentifier)' != ''">..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)\</ServiceHostBuildOutputDir>
+  </PropertyGroup>
+
   <Target Name="CopyRuntimeDlls" AfterTargets="Build">
     <Copy SourceFiles="@(RuntimeDll)"
           DestinationFolder="$(OutDir)"
@@ -39,12 +44,32 @@
           Condition="'@(RuntimeDll)' != ''" />
   </Target>
 
+  <Target Name="CopyRuntimeDllsOnPublish" AfterTargets="Publish">
+    <Copy SourceFiles="@(RuntimeDll)"
+          DestinationFolder="$(PublishDir)"
+          SkipUnchangedFiles="true"
+          Condition="'@(RuntimeDll)' != ''" />
+  </Target>
+
+  <Target Name="BuildServiceHost" BeforeTargets="CopyServiceHostArtifacts">
+    <MSBuild Projects="$(ServiceHostProject)"
+             Targets="Build"
+             RemoveProperties="TargetFramework;TargetFrameworks"
+             Properties="Configuration=$(Configuration)"
+             Condition="'$(RuntimeIdentifier)' == ''" />
+    <MSBuild Projects="$(ServiceHostProject)"
+             Targets="Restore;Build"
+             RemoveProperties="TargetFramework;TargetFrameworks"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier)"
+             Condition="'$(RuntimeIdentifier)' != ''" />
+  </Target>
+
   <Target Name="CopyServiceHostArtifacts" AfterTargets="Build">
     <ItemGroup>
-      <ServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.exe" />
-      <ServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.dll" />
-      <ServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.deps.json" />
-      <ServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.runtimeconfig.json" />
+      <ServiceHostArtifacts Include="$(ServiceHostBuildOutputDir)MyWireGuard.ServiceHost.exe" Condition="Exists('$(ServiceHostBuildOutputDir)MyWireGuard.ServiceHost.exe')" />
+      <ServiceHostArtifacts Include="$(ServiceHostBuildOutputDir)MyWireGuard.ServiceHost.dll" Condition="Exists('$(ServiceHostBuildOutputDir)MyWireGuard.ServiceHost.dll')" />
+      <ServiceHostArtifacts Include="$(ServiceHostBuildOutputDir)MyWireGuard.ServiceHost.deps.json" Condition="Exists('$(ServiceHostBuildOutputDir)MyWireGuard.ServiceHost.deps.json')" />
+      <ServiceHostArtifacts Include="$(ServiceHostBuildOutputDir)MyWireGuard.ServiceHost.runtimeconfig.json" Condition="Exists('$(ServiceHostBuildOutputDir)MyWireGuard.ServiceHost.runtimeconfig.json')" />
     </ItemGroup>
 
     <Copy SourceFiles="@(ServiceHostArtifacts)"
@@ -53,12 +78,23 @@
           Condition="'@(ServiceHostArtifacts)' != ''" />
   </Target>
 
+  <Target Name="PublishServiceHost" BeforeTargets="CopyServiceHostArtifactsOnPublish">
+    <PropertyGroup>
+      <ServiceHostPublishDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(IntermediateOutputPath)servicehost-publish\'))</ServiceHostPublishDir>
+    </PropertyGroup>
+
+    <MSBuild Projects="$(ServiceHostProject)"
+             Targets="Restore;Publish"
+             RemoveProperties="PublishProfile;TargetFramework;TargetFrameworks"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=$(SelfContained);PublishSingleFile=$(PublishSingleFile);PublishDir=$(ServiceHostPublishDir)" />
+  </Target>
+
   <Target Name="CopyServiceHostArtifactsOnPublish" AfterTargets="Publish">
     <ItemGroup>
-      <PublishedServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.exe" />
-      <PublishedServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.dll" />
-      <PublishedServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.deps.json" />
-      <PublishedServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.runtimeconfig.json" />
+      <PublishedServiceHostArtifacts Include="$(ServiceHostPublishDir)MyWireGuard.ServiceHost.exe" Condition="Exists('$(ServiceHostPublishDir)MyWireGuard.ServiceHost.exe')" />
+      <PublishedServiceHostArtifacts Include="$(ServiceHostPublishDir)MyWireGuard.ServiceHost.dll" Condition="Exists('$(ServiceHostPublishDir)MyWireGuard.ServiceHost.dll')" />
+      <PublishedServiceHostArtifacts Include="$(ServiceHostPublishDir)MyWireGuard.ServiceHost.deps.json" Condition="Exists('$(ServiceHostPublishDir)MyWireGuard.ServiceHost.deps.json')" />
+      <PublishedServiceHostArtifacts Include="$(ServiceHostPublishDir)MyWireGuard.ServiceHost.runtimeconfig.json" Condition="Exists('$(ServiceHostPublishDir)MyWireGuard.ServiceHost.runtimeconfig.json')" />
     </ItemGroup>
 
     <Copy SourceFiles="@(PublishedServiceHostArtifacts)"
