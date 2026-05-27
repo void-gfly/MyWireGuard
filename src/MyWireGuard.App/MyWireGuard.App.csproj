@@ -1,0 +1,70 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\MyWireGuard.Core\MyWireGuard.Core.csproj" />
+    <ProjectReference Include="..\MyWireGuard.Infrastructure\MyWireGuard.Infrastructure.csproj" />
+    <ProjectReference Include="..\MyWireGuard.ServiceHost\MyWireGuard.ServiceHost.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>MyWireGuard</AssemblyName>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>app-logo.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="app-logo.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <RuntimeDll Include="..\..\runtime\*.dll" Condition="Exists('..\..\runtime')" />
+  </ItemGroup>
+
+  <Target Name="CopyRuntimeDlls" AfterTargets="Build">
+    <Copy SourceFiles="@(RuntimeDll)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true"
+          Condition="'@(RuntimeDll)' != ''" />
+  </Target>
+
+  <Target Name="CopyServiceHostArtifacts" AfterTargets="Build">
+    <ItemGroup>
+      <ServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.exe" />
+      <ServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.dll" />
+      <ServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.deps.json" />
+      <ServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.runtimeconfig.json" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(ServiceHostArtifacts)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true"
+          Condition="'@(ServiceHostArtifacts)' != ''" />
+  </Target>
+
+  <Target Name="CopyServiceHostArtifactsOnPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <PublishedServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.exe" />
+      <PublishedServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.dll" />
+      <PublishedServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.deps.json" />
+      <PublishedServiceHostArtifacts Include="..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\MyWireGuard.ServiceHost.runtimeconfig.json" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(PublishedServiceHostArtifacts)"
+          DestinationFolder="$(PublishDir)"
+          SkipUnchangedFiles="true"
+          Condition="'@(PublishedServiceHostArtifacts)' != ''" />
+  </Target>
+
+</Project>

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MyWireGuard.App/MyWireGuard.App.csproj" />
+    <Project Path="src/MyWireGuard.Core/MyWireGuard.Core.csproj" />
+    <Project Path="src/MyWireGuard.Infrastructure/MyWireGuard.Infrastructure.csproj" />
+    <Project Path="src/MyWireGuard.ServiceHost/MyWireGuard.ServiceHost.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MyWireGuard.Tests/MyWireGuard.Tests.csproj" />
+  </Folder>
+</Solution>

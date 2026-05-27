@@ -1,0 +1,208 @@
+﻿using System.ComponentModel;
+using System.Drawing;
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using MyWireGuard.App.ViewModels;
+using Forms = System.Windows.Forms;
+
+namespace MyWireGuard.App;
+
+public partial class MainWindow : Window
+{
+    private readonly MainWindowViewModel viewModel;
+    private readonly Forms.NotifyIcon notifyIcon;
+    private readonly ContextMenu trayContextMenu;
+    private readonly MenuItem trayStatusMenuItem;
+    private bool hasDisposedExitResources;
+    private bool isExitRequested;
+
+    public MainWindow(MainWindowViewModel viewModel)
+    {
+        this.viewModel = viewModel;
+        InitializeComponent();
+        DataContext = viewModel;
+        trayStatusMenuItem = new MenuItem
+        {
+            Header = viewModel.TrayStatusText,
+            IsEnabled = false,
+            Style = (Style)FindResource("TrayStatusMenuItemStyle")
+        };
+        trayContextMenu = CreateTrayContextMenu();
+        notifyIcon = CreateNotifyIcon();
+
+        Loaded += async (_, _) => await viewModel.InitializeAsync();
+        StateChanged += OnStateChanged;
+        Closing += OnClosing;
+        Closed += OnClosed;
+        viewModel.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private ContextMenu CreateTrayContextMenu()
+    {
+        var contextMenu = new ContextMenu
+        {
+            Placement = PlacementMode.AbsolutePoint,
+            Style = (Style)FindResource("TrayContextMenuStyle")
+        };
+        var showWindowMenuItem = new MenuItem
+        {
+            Header = "显示窗口",
+            Style = (Style)FindResource("TrayMenuItemStyle")
+        };
+        var exitMenuItem = new MenuItem
+        {
+            Header = "退出程序",
+            Style = (Style)FindResource("TrayMenuItemStyle")
+        };
+        var separator = new Separator
+        {
+            Style = (Style)FindResource("TraySeparatorStyle")
+        };
+
+        showWindowMenuItem.Click += (_, _) => ShowFromTray();
+        exitMenuItem.Click += (_, _) => ExitApplication();
+
+        contextMenu.Items.Add(trayStatusMenuItem);
+        contextMenu.Items.Add(separator);
+        contextMenu.Items.Add(showWindowMenuItem);
+        contextMenu.Items.Add(exitMenuItem);
+
+        return contextMenu;
+    }
+
+    private Forms.NotifyIcon CreateNotifyIcon()
+    {
+        var icon = new Forms.NotifyIcon
+        {
+            Text = "MyWireGuard",
+            Icon = LoadTrayIcon(),
+            Visible = true
+        };
+
+        icon.MouseUp += OnNotifyIconMouseUp;
+        icon.DoubleClick += (_, _) => Dispatcher.Invoke(ShowFromTray);
+
+        return icon;
+    }
+
+    private static Icon LoadTrayIcon()
+    {
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "app-logo.ico");
+        if (File.Exists(iconPath))
+        {
+            return new Icon(iconPath);
+        }
+
+        return SystemIcons.Application;
+    }
+
+    private void OnStateChanged(object? sender, EventArgs e)
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            HideToTray();
+        }
+    }
+
+    private void OnClosing(object? sender, CancelEventArgs e)
+    {
+        if (isExitRequested)
+        {
+            return;
+        }
+
+        e.Cancel = true;
+        HideToTray();
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        DisposeExitResources();
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainWindowViewModel.TrayStatusText))
+        {
+            trayStatusMenuItem.Header = viewModel.TrayStatusText;
+        }
+    }
+
+    private void OnNotifyIconMouseUp(object? sender, Forms.MouseEventArgs e)
+    {
+        if (e.Button != Forms.MouseButtons.Right)
+        {
+            return;
+        }
+
+        Dispatcher.Invoke(OpenTrayContextMenu);
+    }
+
+    private void OpenTrayContextMenu()
+    {
+        var cursorPosition = Forms.Control.MousePosition;
+        trayStatusMenuItem.Header = viewModel.TrayStatusText;
+        trayContextMenu.HorizontalOffset = cursorPosition.X;
+        trayContextMenu.VerticalOffset = cursorPosition.Y;
+        trayContextMenu.IsOpen = true;
+    }
+
+    private void HideToTray()
+    {
+        ShowInTaskbar = false;
+        Hide();
+    }
+
+    private void ShowFromTray()
+    {
+        ShowInTaskbar = true;
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    private async void ExitApplication()
+    {
+        var exitChoice = await viewModel.ConfirmExitAsync();
+        if (exitChoice == Services.ExitConfirmationResult.Cancel)
+        {
+            return;
+        }
+
+        isExitRequested = true;
+        trayContextMenu.IsOpen = false;
+
+        if (exitChoice == Services.ExitConfirmationResult.StopTunnelsAndExit)
+        {
+            await viewModel.StopActiveTunnelsAsync();
+        }
+
+        DisposeExitResources();
+
+        if (Application.Current.MainWindow == this)
+        {
+            Application.Current.MainWindow = null;
+        }
+
+        Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        Application.Current.Shutdown();
+        Environment.Exit(0);
+    }
+
+    private void DisposeExitResources()
+    {
+        if (hasDisposedExitResources)
+        {
+            return;
+        }
+
+        hasDisposedExitResources = true;
+        viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        viewModel.Shutdown();
+        notifyIcon.MouseUp -= OnNotifyIconMouseUp;
+        notifyIcon.Visible = false;
+        notifyIcon.Dispose();
+    }
+}

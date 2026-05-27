@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\MyWireGuard.Infrastructure\MyWireGuard.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>MyWireGuard.ServiceHost</AssemblyName>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <RuntimeDll Include="..\..\runtime\*.dll" Condition="Exists('..\..\runtime')" />
+  </ItemGroup>
+
+  <Target Name="CopyRuntimeDlls" AfterTargets="Build">
+    <Copy SourceFiles="@(RuntimeDll)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true"
+          Condition="'@(RuntimeDll)' != ''" />
+  </Target>
+
+</Project>
