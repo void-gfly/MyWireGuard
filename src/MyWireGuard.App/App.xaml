@@ -5,21 +5,21 @@
     <Application.Resources>
 
         <!-- ===================== BRUSHES ===================== -->
-        <SolidColorBrush x:Key="WindowBrush"          Color="#0F1117" />
-        <SolidColorBrush x:Key="SidebarBrush"         Color="#131923" />
-        <SolidColorBrush x:Key="PanelBrush"           Color="#1C2333" />
-        <SolidColorBrush x:Key="PanelElevatedBrush"   Color="#242D3D" />
-        <SolidColorBrush x:Key="BorderBrush"          Color="#2E3A52" />
-        <SolidColorBrush x:Key="AccentBrush"          Color="#4D94E8" />
-        <SolidColorBrush x:Key="TextPrimaryBrush"     Color="#E8EBF4" />
-        <SolidColorBrush x:Key="TextSecondaryBrush"   Color="#8596B0" />
+        <SolidColorBrush x:Key="WindowBrush"          Color="#020617" />
+        <SolidColorBrush x:Key="SidebarBrush"         Color="#0F172A" />
+        <SolidColorBrush x:Key="PanelBrush"           Color="#0B1120" />
+        <SolidColorBrush x:Key="PanelElevatedBrush"   Color="#111827" />
+        <SolidColorBrush x:Key="BorderBrush"          Color="#1E293B" />
+        <SolidColorBrush x:Key="AccentBrush"          Color="#22C55E" />
+        <SolidColorBrush x:Key="TextPrimaryBrush"     Color="#F8FAFC" />
+        <SolidColorBrush x:Key="TextSecondaryBrush"   Color="#94A3B8" />
         <SolidColorBrush x:Key="StatusRunningBrush"   Color="#4CAF50" />
         <SolidColorBrush x:Key="StatusStartingBrush"  Color="#FFA726" />
         <SolidColorBrush x:Key="StatusStoppingBrush"  Color="#FF7043" />
         <SolidColorBrush x:Key="StatusStoppedBrush"   Color="#546E7A" />
         <SolidColorBrush x:Key="DangerBrush"          Color="#EF5350" />
-        <SolidColorBrush x:Key="NavItemHoverBrush"    Color="#1A2638" />
-        <SolidColorBrush x:Key="NavItemActiveBrush"   Color="#1E2F48" />
+        <SolidColorBrush x:Key="NavItemHoverBrush"    Color="#172033" />
+        <SolidColorBrush x:Key="NavItemActiveBrush"   Color="#123525" />
 
         <!-- ===================== CONVERTER ===================== -->
         <converters:IntEqualsBoolConverter x:Key="IntEqualsBoolConverter" />

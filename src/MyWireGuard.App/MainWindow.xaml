@@ -15,6 +15,58 @@
         UseLayoutRounding="True">
 
     <Window.Resources>
+        <Style x:Key="TopNavItemStyle" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="NavBg"
+                                Background="Transparent"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="NavBg" Property="Background" Value="{StaticResource NavItemActiveBrush}" />
+                                <Setter TargetName="NavBg" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="NavBg" Property="Background" Value="{StaticResource NavItemHoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ShellStatusPillStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource PanelElevatedBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="9,4" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+        </Style>
+
+        <Style x:Key="PanelCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource PanelBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+
         <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -34,79 +86,62 @@
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
 
-        <Style x:Key="SummaryCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource PanelBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="7" />
-            <Setter Property="Padding" Value="12,10" />
-            <Setter Property="Margin" Value="0,0,0,10" />
-        </Style>
-
-        <Style x:Key="MetricChipStyle" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource PanelBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="7,6" />
-            <Setter Property="Margin" Value="0,0,6,0" />
+        <Style x:Key="MetricChipStyle" TargetType="Border" BasedOn="{StaticResource PanelCardStyle}">
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Margin" Value="0,0,8,0" />
         </Style>
 
         <Style x:Key="MetricValueStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontSize" Value="20" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Margin" Value="0,0,7,0" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
         <Style x:Key="CompactBadgeBorderStyle" TargetType="Border">
-            <Setter Property="Padding" Value="7,2" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="MinWidth" Value="48" />
-            <Setter Property="Background" Value="#3C4B61" />
+            <Setter Property="Padding" Value="7,1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="MinWidth" Value="42" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="#334155" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="success">
-                    <Setter Property="Background" Value="#1FB85A" />
+                    <Setter Property="Background" Value="#16A34A" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="warning">
-                    <Setter Property="Background" Value="#F08A24" />
+                    <Setter Property="Background" Value="#D97706" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="danger">
-                    <Setter Property="Background" Value="#E04848" />
+                    <Setter Property="Background" Value="#DC2626" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="neutral">
-                    <Setter Property="Background" Value="#4E6077" />
+                    <Setter Property="Background" Value="#475569" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="CompactBadgeTextStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontSize" Value="9" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
         <Style x:Key="TunnelTabControlStyle" TargetType="TabControl">
-            <Setter Property="Background" Value="{StaticResource PanelBrush}" />
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="10,8,10,0" />
+            <Setter Property="Padding" Value="0" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabControl">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{StaticResource BorderBrush}"
-                                BorderThickness="0,0,0,1"
-                                Padding="{TemplateBinding Padding}">
-                            <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                          VerticalScrollBarVisibility="Disabled">
-                                <TabPanel IsItemsHost="True"
-                                          Margin="0"
-                                          Background="Transparent"
-                                          KeyboardNavigation.TabIndex="1" />
-                            </ScrollViewer>
-                        </Border>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                      VerticalScrollBarVisibility="Disabled">
+                            <TabPanel IsItemsHost="True"
+                                      Margin="0"
+                                      Background="Transparent" />
+                        </ScrollViewer>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -117,13 +152,13 @@
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Padding" Value="12,7" />
-            <Setter Property="MinWidth" Value="112" />
-            <Setter Property="MaxWidth" Value="180" />
+            <Setter Property="MinWidth" Value="116" />
+            <Setter Property="MaxWidth" Value="190" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Border x:Name="TabBg"
-                                Margin="0,0,6,8"
+                                Margin="0,0,8,0"
                                 Padding="{TemplateBinding Padding}"
                                 Background="{StaticResource PanelElevatedBrush}"
                                 BorderBrush="{StaticResource BorderBrush}"
@@ -151,118 +186,123 @@
     </Window.Resources>
 
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="168" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <!-- ============================================================ -->
-        <!--  SIDEBAR                                                      -->
-        <!-- ============================================================ -->
-        <DockPanel Grid.Column="0"
-                   Background="{StaticResource SidebarBrush}">
-
-            <!-- Logo / App Header -->
-            <Border DockPanel.Dock="Top"
-                    Padding="16,17,16,14"
-                    BorderThickness="0,0,0,1"
-                    BorderBrush="{StaticResource BorderBrush}">
-                <StackPanel>
-                    <TextBlock Text="MyWireGuard"
-                               FontSize="15"
-                               FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimaryBrush}" />
-                    <TextBlock Text="WireGuard VPN 客户端"
-                               FontSize="11"
-                               Margin="0,2,0,0"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-            </Border>
-
-            <!-- Status Panel (pinned to bottom) -->
-            <Border DockPanel.Dock="Bottom"
-                    Padding="13,11"
-                    BorderThickness="0,1,0,0"
-                    BorderBrush="{StaticResource BorderBrush}">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                        <Ellipse Width="6" Height="6"
-                                 VerticalAlignment="Center"
-                                 Margin="0,0,7,0">
-                            <Ellipse.Style>
-                                <Style TargetType="Ellipse">
-                                    <Setter Property="Fill" Value="{StaticResource StatusStoppedBrush}" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding RuntimeStatus}" Value="运行时已就绪">
-                                            <Setter Property="Fill" Value="{StaticResource StatusRunningBrush}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Ellipse.Style>
-                        </Ellipse>
-                        <TextBlock Text="{Binding RuntimeStatus}"
-                                   FontSize="11"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="6" Height="6"
-                                 VerticalAlignment="Center"
-                                 Margin="0,0,7,0">
-                            <Ellipse.Style>
-                                <Style TargetType="Ellipse">
-                                    <Setter Property="Fill" Value="{StaticResource StatusStartingBrush}" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding PrivilegeStatus}" Value="已使用管理员权限运行">
-                                            <Setter Property="Fill" Value="{StaticResource StatusRunningBrush}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Ellipse.Style>
-                        </Ellipse>
-                        <TextBlock Text="{Binding PrivilegeStatus}"
-                                   FontSize="11"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- Navigation Items -->
-            <StackPanel DockPanel.Dock="Top" Margin="0,6,0,0">
-                <RadioButton Style="{StaticResource NavItemStyle}"
-                             GroupName="MainNav"
-                             IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=0}">
-                    <TextBlock Text="隧道" />
-                </RadioButton>
-                <RadioButton Style="{StaticResource NavItemStyle}"
-                             GroupName="MainNav"
-                             IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=1}">
-                    <TextBlock Text="配置" />
-                </RadioButton>
-                <RadioButton Style="{StaticResource NavItemStyle}"
-                             GroupName="MainNav"
-                             IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=2}">
-                    <TextBlock Text="活动日志" />
-                </RadioButton>
-                <RadioButton Style="{StaticResource NavItemStyle}"
-                             GroupName="MainNav"
-                             IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=3}">
-                    <TextBlock Text="工具" />
-                </RadioButton>
-            </StackPanel>
-        </DockPanel>
-
-        <Border Grid.Column="0"
-                BorderThickness="0,0,1,0"
+        <!-- Application shell bar -->
+        <Border Grid.Row="0"
+                Background="{StaticResource SidebarBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
-                IsHitTestVisible="False" />
+                BorderThickness="0,0,0,1"
+                Padding="14,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-        <!-- ============================================================ -->
-        <!--  MAIN CONTENT  (TabControl with hidden strip)                 -->
-        <!-- ============================================================ -->
-        <TabControl Grid.Column="1"
+                <StackPanel Grid.Column="0"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Border Width="28"
+                            Height="28"
+                            CornerRadius="7"
+                            Background="{StaticResource AccentBrush}"
+                            Margin="0,0,10,0">
+                        <TextBlock Text="WG"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Foreground="#052E16"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="MyWireGuard"
+                                   FontSize="15"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="WireGuard VPN 客户端"
+                                   FontSize="10"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                    <RadioButton Style="{StaticResource TopNavItemStyle}"
+                                 GroupName="MainNav"
+                                 IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=0}">
+                        <TextBlock Text="隧道" />
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource TopNavItemStyle}"
+                                 GroupName="MainNav"
+                                 IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=1}">
+                        <TextBlock Text="配置" />
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource TopNavItemStyle}"
+                                 GroupName="MainNav"
+                                 IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=2}">
+                        <TextBlock Text="活动日志" />
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource TopNavItemStyle}"
+                                 GroupName="MainNav"
+                                 IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=3}">
+                        <TextBlock Text="工具" />
+                    </RadioButton>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Border Style="{StaticResource ShellStatusPillStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="6" Height="6" Margin="0,0,7,0" VerticalAlignment="Center">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{StaticResource StatusStoppedBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RuntimeStatus}" Value="运行时已就绪">
+                                                <Setter Property="Fill" Value="{StaticResource StatusRunningBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Text="{Binding RuntimeStatus}"
+                                       FontSize="11"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource ShellStatusPillStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="6" Height="6" Margin="0,0,7,0" VerticalAlignment="Center">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{StaticResource StatusStartingBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding PrivilegeStatus}" Value="已使用管理员权限运行">
+                                                <Setter Property="Fill" Value="{StaticResource StatusRunningBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Text="{Binding PrivilegeStatus}"
+                                       FontSize="11"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <TabControl Grid.Row="1"
                     SelectedIndex="{Binding SelectedTabIndex}"
                     Background="Transparent"
                     BorderThickness="0"
@@ -273,95 +313,110 @@
                 </ControlTemplate>
             </TabControl.Template>
 
-            <!-- ======================================================== -->
-            <!--  PAGE 0 - TUNNELS                                         -->
-            <!-- ======================================================== -->
+            <!-- Tunnels -->
             <TabItem>
-                <Grid>
+                <Grid Margin="14">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
                     <Border Grid.Row="0"
-                            Padding="16,9"
-                            Background="{StaticResource PanelBrush}"
-                            BorderThickness="0,0,0,1"
-                            BorderBrush="{StaticResource BorderBrush}">
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left"
-                                       Text="隧道"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Center" />
-                            <StackPanel DockPanel.Dock="Right"
-                                        Orientation="Horizontal">
+                            Style="{StaticResource PanelCardStyle}"
+                            Padding="12"
+                            Margin="0,0,0,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0"
+                                        Margin="0,0,14,0"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="隧道工作台"
+                                           FontSize="16"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SelectedTunnel.ConfigPath, TargetNullValue='选择隧道后显示配置路径'}"
+                                           FontSize="10"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0"
+                                           TextTrimming="CharacterEllipsis"
+                                           MaxWidth="310" />
+                            </StackPanel>
+
+                            <TabControl Grid.Column="1"
+                                        ItemsSource="{Binding Tunnels}"
+                                        SelectedItem="{Binding SelectedTunnel}"
+                                        Style="{StaticResource TunnelTabControlStyle}"
+                                        ItemContainerStyle="{StaticResource TunnelTabItemStyle}"
+                                        VerticalAlignment="Center">
+                                <TabControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Ellipse Grid.Column="0"
+                                                     Width="7"
+                                                     Height="7"
+                                                     Margin="0,0,7,0"
+                                                     VerticalAlignment="Center">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="Ellipse">
+                                                        <Setter Property="Fill" Value="{StaticResource StatusStoppedBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Status}" Value="Started">
+                                                                <Setter Property="Fill" Value="{StaticResource StatusRunningBrush}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="Starting">
+                                                                <Setter Property="Fill" Value="{StaticResource StatusStartingBrush}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="Stopping">
+                                                                <Setter Property="Fill" Value="{StaticResource StatusStoppingBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Name}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </TabControl.ItemTemplate>
+                            </TabControl>
+
+                            <StackPanel Grid.Column="2"
+                                        Orientation="Horizontal"
+                                        Margin="14,0,0,0"
+                                        VerticalAlignment="Center">
                                 <Button Content="刷新"
                                         Command="{Binding RefreshCommand}"
                                         Style="{StaticResource SecondaryButtonStyle}"
-                                        Width="76"
+                                        Width="74"
                                         Padding="10,6"
                                         Margin="0,0,8,0" />
-                                <Button Content="+ 导入 .conf"
+                                <Button Content="导入 .conf"
                                         Command="{Binding ImportCommand}"
                                         Style="{StaticResource PrimaryButtonStyle}"
                                         Padding="12,6" />
                             </StackPanel>
-                        </DockPanel>
+                        </Grid>
                     </Border>
 
-                    <TabControl Grid.Row="1"
-                                ItemsSource="{Binding Tunnels}"
-                                SelectedItem="{Binding SelectedTunnel}"
-                                Style="{StaticResource TunnelTabControlStyle}"
-                                ItemContainerStyle="{StaticResource TunnelTabItemStyle}">
-                        <TabControl.ItemTemplate>
-                            <DataTemplate>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Ellipse Grid.Column="0"
-                                             Width="7"
-                                             Height="7"
-                                             Margin="0,0,7,0"
-                                             VerticalAlignment="Center">
-                                        <Ellipse.Style>
-                                            <Style TargetType="Ellipse">
-                                                <Setter Property="Fill" Value="{StaticResource StatusStoppedBrush}" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Status}" Value="Started">
-                                                        <Setter Property="Fill" Value="{StaticResource StatusRunningBrush}" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Status}" Value="Starting">
-                                                        <Setter Property="Fill" Value="{StaticResource StatusStartingBrush}" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Status}" Value="Stopping">
-                                                        <Setter Property="Fill" Value="{StaticResource StatusStoppingBrush}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Ellipse.Style>
-                                    </Ellipse>
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding Name}"
-                                               TextTrimming="CharacterEllipsis"
-                                               VerticalAlignment="Center" />
-                                </Grid>
-                            </DataTemplate>
-                        </TabControl.ItemTemplate>
-                    </TabControl>
-
-                    <Grid Grid.Row="2">
+                    <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="240" />
+                            <ColumnDefinition Width="300" />
+                            <ColumnDefinition Width="12" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
                         <TextBlock Grid.Column="0"
-                                   Grid.ColumnSpan="2"
+                                   Grid.ColumnSpan="3"
                                    Text="请选择一个隧道以查看详情。"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"
@@ -379,12 +434,9 @@
                             </TextBlock.Style>
                         </TextBlock>
 
-                        <!-- Tunnel summary and actions -->
-                        <ScrollViewer Grid.Column="0"
-                                      VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled">
-                            <ScrollViewer.Style>
-                                <Style TargetType="ScrollViewer">
+                        <Border Grid.Column="0">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource PanelCardStyle}">
                                     <Setter Property="Visibility" Value="Visible" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding SelectedTunnel}" Value="{x:Null}">
@@ -392,121 +444,102 @@
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </ScrollViewer.Style>
-                            <StackPanel Margin="12">
-                                <Border Style="{StaticResource SummaryCardStyle}">
-                                    <StackPanel>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0"
-                                                       Text="{Binding SelectedTunnel.Name}"
-                                                       FontSize="18"
+                            </Border.Style>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="14">
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding SelectedTunnel.Name}"
+                                                       FontSize="20"
                                                        FontWeight="SemiBold"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       VerticalAlignment="Center" />
-                                            <Border Grid.Column="1"
-                                                    Margin="8,0,0,0"
-                                                    Padding="7,2"
-                                                    CornerRadius="4"
-                                                    VerticalAlignment="Center">
-                                                <Border.Style>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="#1A546E7A" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding SelectedTunnel.Status}" Value="Started">
-                                                                <Setter Property="Background" Value="#1A4CAF50" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding SelectedTunnel.Status}" Value="Starting">
-                                                                <Setter Property="Background" Value="#1AFFA726" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding SelectedTunnel.Status}" Value="Stopping">
-                                                                <Setter Property="Background" Value="#1AFF7043" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Border.Style>
-                                                <TextBlock Text="{Binding SelectedTunnel.StatusDisplay}"
-                                                           FontSize="10"
-                                                           FontWeight="SemiBold">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Foreground" Value="{StaticResource StatusStoppedBrush}" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding SelectedTunnel.Status}" Value="Started">
-                                                                    <Setter Property="Foreground" Value="{StaticResource StatusRunningBrush}" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding SelectedTunnel.Status}" Value="Starting">
-                                                                    <Setter Property="Foreground" Value="{StaticResource StatusStartingBrush}" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding SelectedTunnel.Status}" Value="Stopping">
-                                                                    <Setter Property="Foreground" Value="{StaticResource StatusStoppingBrush}" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </Border>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding SelectedTunnel.AddressDisplay}"
+                                                       FontSize="11"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       Margin="0,3,0,0"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <Border Grid.Column="1"
+                                                Margin="10,0,0,0"
+                                                Padding="8,3"
+                                                CornerRadius="5"
+                                                VerticalAlignment="Top">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#1E293B" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedTunnel.Status}" Value="Started">
+                                                            <Setter Property="Background" Value="#14532D" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding SelectedTunnel.Status}" Value="Starting">
+                                                            <Setter Property="Background" Value="#713F12" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding SelectedTunnel.Status}" Value="Stopping">
+                                                            <Setter Property="Background" Value="#7C2D12" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding SelectedTunnel.StatusDisplay}"
+                                                       FontSize="10"
+                                                       FontWeight="SemiBold" />
+                                        </Border>
+                                    </Grid>
 
-                                <UniformGrid Columns="2" Margin="0,0,0,10">
-                                    <Button Content="{Binding ToggleTunnelButtonContent}"
-                                            Command="{Binding ToggleTunnelCommand}"
-                                            Style="{StaticResource PrimaryButtonStyle}"
-                                            Margin="0,0,6,6"
-                                            Padding="10,6" />
-                                    <Button Content="✎  编辑配置"
-                                            Command="{Binding EditConfigCommand}"
-                                            Style="{StaticResource SecondaryButtonStyle}"
-                                            Margin="0,0,0,6"
-                                            Padding="10,6" />
-                                    <Button Content="导出"
-                                            Command="{Binding ExportCommand}"
-                                            Style="{StaticResource SecondaryButtonStyle}"
-                                            Margin="0,0,6,0"
-                                            Padding="10,6" />
-                                    <Button Content="删除"
-                                            Command="{Binding RemoveCommand}"
-                                            Style="{StaticResource DangerButtonStyle}"
-                                            Padding="10,6" />
-                                </UniformGrid>
+                                    <UniformGrid Columns="2" Margin="0,0,0,12">
+                                        <Button Content="{Binding ToggleTunnelButtonContent}"
+                                                Command="{Binding ToggleTunnelCommand}"
+                                                Style="{StaticResource PrimaryButtonStyle}"
+                                                Margin="0,0,6,6"
+                                                Padding="10,7" />
+                                        <Button Content="编辑配置"
+                                                Command="{Binding EditConfigCommand}"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Margin="0,0,0,6"
+                                                Padding="10,7" />
+                                        <Button Content="导出"
+                                                Command="{Binding ExportCommand}"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Margin="0,0,6,0"
+                                                Padding="10,7" />
+                                        <Button Content="删除"
+                                                Command="{Binding RemoveCommand}"
+                                                Style="{StaticResource DangerButtonStyle}"
+                                                Padding="10,7" />
+                                    </UniformGrid>
 
-                                <Border Style="{StaticResource SummaryCardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="隧道信息"
-                                                   Style="{StaticResource SectionTitleStyle}"
-                                                   Margin="0,0,0,8" />
-                                        <TextBlock Text="地址" Style="{StaticResource InfoLabelStyle}" />
-                                        <TextBlock Text="{Binding SelectedTunnel.AddressDisplay}"
-                                                   Style="{StaticResource InfoValueStyle}"
-                                                   Margin="0,0,0,8" />
-                                        <TextBlock Text="DNS" Style="{StaticResource InfoLabelStyle}" />
-                                        <TextBlock Text="{Binding SelectedTunnel.DnsDisplay}"
-                                                   Style="{StaticResource InfoValueStyle}"
-                                                   Margin="0,0,0,8" />
-                                        <TextBlock Text="对等端" Style="{StaticResource InfoLabelStyle}" />
-                                        <TextBlock Text="{Binding SelectedTunnel.PeerCount}"
-                                                   Style="{StaticResource InfoValueStyle}"
-                                                   Margin="0,0,0,8" />
-                                        <TextBlock Text="端点" Style="{StaticResource InfoLabelStyle}" />
-                                        <TextBlock Text="{Binding SelectedTunnel.EndpointDisplay}"
-                                                   Style="{StaticResource InfoValueStyle}"
-                                                   Margin="0,0,0,8" />
-                                        <TextBlock Text="配置文件" Style="{StaticResource InfoLabelStyle}" />
-                                        <TextBlock Text="{Binding SelectedTunnel.ConfigPath}"
-                                                   Style="{StaticResource InfoValueStyle}" />
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </ScrollViewer>
+                                    <Border Height="1"
+                                            Background="{StaticResource BorderBrush}"
+                                            Margin="0,0,0,12" />
 
-                        <!-- Neighbor work area -->
-                        <Grid Grid.Column="1"
-                              Margin="12">
+                                    <TextBlock Text="配置摘要"
+                                               Style="{StaticResource SectionTitleStyle}"
+                                               Margin="0,0,0,10" />
+                                    <TextBlock Text="DNS" Style="{StaticResource InfoLabelStyle}" />
+                                    <TextBlock Text="{Binding SelectedTunnel.DnsDisplay}"
+                                               Style="{StaticResource InfoValueStyle}"
+                                               Margin="0,0,0,10" />
+                                    <TextBlock Text="对等端" Style="{StaticResource InfoLabelStyle}" />
+                                    <TextBlock Text="{Binding SelectedTunnel.PeerCount}"
+                                               Style="{StaticResource InfoValueStyle}"
+                                               Margin="0,0,0,10" />
+                                    <TextBlock Text="端点" Style="{StaticResource InfoLabelStyle}" />
+                                    <TextBlock Text="{Binding SelectedTunnel.EndpointDisplay}"
+                                               Style="{StaticResource InfoValueStyle}"
+                                               Margin="0,0,0,10" />
+                                    <TextBlock Text="配置文件" Style="{StaticResource InfoLabelStyle}" />
+                                    <TextBlock Text="{Binding SelectedTunnel.ConfigPath}"
+                                               Style="{StaticResource InfoValueStyle}" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+
+                        <Grid Grid.Column="2">
                             <Grid.Style>
                                 <Style TargetType="Grid">
                                     <Setter Property="Visibility" Value="Visible" />
@@ -524,11 +557,8 @@
                             </Grid.RowDefinitions>
 
                             <Border Grid.Row="0"
-                                    Padding="12,10"
-                                    Background="{StaticResource PanelBrush}"
-                                    CornerRadius="7"
-                                    BorderBrush="{StaticResource BorderBrush}"
-                                    BorderThickness="1">
+                                    Style="{StaticResource PanelCardStyle}"
+                                    Padding="12">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -541,10 +571,12 @@
                                                    FontSize="11"
                                                    Foreground="{StaticResource TextSecondaryBrush}"
                                                    VerticalAlignment="Center" />
-                                        <Border Margin="7,0,12,0"
-                                                Padding="9,3"
+                                        <Border Margin="7,0,14,0"
+                                                Padding="8,3"
                                                 Background="{StaticResource PanelElevatedBrush}"
-                                                CornerRadius="999">
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="5">
                                             <TextBlock Text="{Binding TunnelNeighbors.SubnetDisplay}"
                                                        FontSize="12"
                                                        FontWeight="SemiBold" />
@@ -553,10 +585,12 @@
                                                    FontSize="11"
                                                    Foreground="{StaticResource TextSecondaryBrush}"
                                                    VerticalAlignment="Center" />
-                                        <Border Margin="7,0,12,0"
-                                                Padding="9,3"
+                                        <Border Margin="7,0,14,0"
+                                                Padding="8,3"
                                                 Background="{StaticResource PanelElevatedBrush}"
-                                                CornerRadius="999">
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="5">
                                             <TextBlock Text="{Binding TunnelNeighbors.StatusSummary}"
                                                        FontSize="12"
                                                        FontWeight="SemiBold" />
@@ -632,147 +666,148 @@
                                 </Border>
                             </UniformGrid>
 
-                            <Grid Grid.Row="2">
-                                <DataGrid ItemsSource="{Binding TunnelNeighbors.Hosts}"
-                                          AutoGenerateColumns="False"
-                                          CanUserAddRows="False"
-                                          CanUserDeleteRows="False"
-                                          HeadersVisibility="Column"
-                                          GridLinesVisibility="Horizontal"
-                                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                          IsReadOnly="False"
-                                          RowHeight="36"
-                                          ColumnHeaderHeight="32">
-                                    <DataGrid.Resources>
-                                        <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
-                                            <Setter Property="Padding" Value="8,0" />
-                                        </Style>
-                                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-                                            <Setter Property="Padding" Value="8,0" />
-                                        </Style>
-                                    </DataGrid.Resources>
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Width="150"
-                                                            Header="备注名"
-                                                            Binding="{Binding Remark, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
-                                        <DataGridTextColumn Width="132"
-                                                            Header="IP"
-                                                            Binding="{Binding IpAddress}"
-                                                            SortMemberPath="IpAddressLastSegmentSortKey"
-                                                            IsReadOnly="True" />
-                                        <DataGridTextColumn Width="*"
-                                                            Header="真实主机名"
-                                                            Binding="{Binding HostnameDisplay}"
-                                                            IsReadOnly="True" />
-                                        <DataGridTemplateColumn Width="86"
-                                                                Header="Ping"
-                                                                SortMemberPath="PingMs">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <Border Tag="{Binding PingBadgeKind}"
-                                                            Style="{StaticResource CompactBadgeBorderStyle}"
-                                                            HorizontalAlignment="Center">
-                                                        <TextBlock Text="{Binding PingBadgeText}"
-                                                                   Style="{StaticResource CompactBadgeTextStyle}" />
-                                                    </Border>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                        </DataGridTemplateColumn>
-                                        <DataGridTemplateColumn Width="92"
-                                                                Header="端口">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <Grid>
-                                                        <StackPanel Orientation="Horizontal"
-                                                                    HorizontalAlignment="Center">
-                                                            <Border Margin="0,0,4,0">
-                                                                <Border.Style>
-                                                                    <Style TargetType="Border" BasedOn="{StaticResource CompactBadgeBorderStyle}">
-                                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                                        <Setter Property="Tag" Value="success" />
-                                                                        <Style.Triggers>
-                                                                            <DataTrigger Binding="{Binding IsRdpOpen}" Value="True">
-                                                                                <Setter Property="Visibility" Value="Visible" />
-                                                                            </DataTrigger>
-                                                                        </Style.Triggers>
-                                                                    </Style>
-                                                                </Border.Style>
-                                                                <TextBlock Text="RDP"
-                                                                           Style="{StaticResource CompactBadgeTextStyle}" />
-                                                            </Border>
-                                                            <Border>
-                                                                <Border.Style>
-                                                                    <Style TargetType="Border" BasedOn="{StaticResource CompactBadgeBorderStyle}">
-                                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                                        <Setter Property="Tag" Value="success" />
-                                                                        <Style.Triggers>
-                                                                            <DataTrigger Binding="{Binding IsSshOpen}" Value="True">
-                                                                                <Setter Property="Visibility" Value="Visible" />
-                                                                            </DataTrigger>
-                                                                        </Style.Triggers>
-                                                                    </Style>
-                                                                </Border.Style>
-                                                                <TextBlock Text="SSH"
-                                                                           Style="{StaticResource CompactBadgeTextStyle}" />
-                                                            </Border>
-                                                        </StackPanel>
-                                                        <TextBlock Text="-"
-                                                                   HorizontalAlignment="Center"
-                                                                   VerticalAlignment="Center"
-                                                                   Foreground="{StaticResource TextSecondaryBrush}">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock">
-                                                                    <Setter Property="Visibility" Value="Visible" />
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding HasOpenPorts}" Value="True">
+                            <Border Grid.Row="2"
+                                    Style="{StaticResource PanelCardStyle}">
+                                <Grid>
+                                    <DataGrid ItemsSource="{Binding TunnelNeighbors.Hosts}"
+                                              AutoGenerateColumns="False"
+                                              CanUserAddRows="False"
+                                              CanUserDeleteRows="False"
+                                              HeadersVisibility="Column"
+                                              GridLinesVisibility="Horizontal"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                              IsReadOnly="False"
+                                              RowHeight="36"
+                                              ColumnHeaderHeight="32">
+                                        <DataGrid.Resources>
+                                            <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                                <Setter Property="Padding" Value="8,0" />
+                                            </Style>
+                                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                                <Setter Property="Padding" Value="8,0" />
+                                            </Style>
+                                        </DataGrid.Resources>
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Width="150"
+                                                                Header="备注名"
+                                                                Binding="{Binding Remark, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                                            <DataGridTextColumn Width="132"
+                                                                Header="IP"
+                                                                Binding="{Binding IpAddress}"
+                                                                SortMemberPath="IpAddressLastSegmentSortKey"
+                                                                IsReadOnly="True" />
+                                            <DataGridTextColumn Width="*"
+                                                                Header="真实主机名"
+                                                                Binding="{Binding HostnameDisplay}"
+                                                                IsReadOnly="True" />
+                                            <DataGridTemplateColumn Width="86"
+                                                                    Header="Ping"
+                                                                    SortMemberPath="PingMs">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Border Tag="{Binding PingBadgeKind}"
+                                                                Style="{StaticResource CompactBadgeBorderStyle}"
+                                                                HorizontalAlignment="Center">
+                                                            <TextBlock Text="{Binding PingBadgeText}"
+                                                                       Style="{StaticResource CompactBadgeTextStyle}" />
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTemplateColumn Width="92"
+                                                                    Header="端口">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Grid>
+                                                            <StackPanel Orientation="Horizontal"
+                                                                        HorizontalAlignment="Center">
+                                                                <Border Margin="0,0,4,0">
+                                                                    <Border.Style>
+                                                                        <Style TargetType="Border" BasedOn="{StaticResource CompactBadgeBorderStyle}">
                                                                             <Setter Property="Visibility" Value="Collapsed" />
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                        </DataGridTemplateColumn>
-                                        <DataGridTemplateColumn Width="82"
-                                                                Header="状态"
-                                                                SortMemberPath="StatusDisplay">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <Border Tag="{Binding StatusBadgeKind}"
-                                                            Style="{StaticResource CompactBadgeBorderStyle}"
-                                                            HorizontalAlignment="Center">
-                                                        <TextBlock Text="{Binding StatusBadgeText}"
-                                                                   Style="{StaticResource CompactBadgeTextStyle}" />
-                                                    </Border>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                        </DataGridTemplateColumn>
-                                        <DataGridTextColumn Width="150"
-                                                            Header="最后发现"
-                                                            Binding="{Binding LastSeenDisplay}"
-                                                            IsReadOnly="True" />
-                                    </DataGrid.Columns>
-                                </DataGrid>
+                                                                            <Setter Property="Tag" Value="success" />
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding IsRdpOpen}" Value="True">
+                                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </Border.Style>
+                                                                    <TextBlock Text="RDP"
+                                                                               Style="{StaticResource CompactBadgeTextStyle}" />
+                                                                </Border>
+                                                                <Border>
+                                                                    <Border.Style>
+                                                                        <Style TargetType="Border" BasedOn="{StaticResource CompactBadgeBorderStyle}">
+                                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                                            <Setter Property="Tag" Value="success" />
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding IsSshOpen}" Value="True">
+                                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </Border.Style>
+                                                                    <TextBlock Text="SSH"
+                                                                               Style="{StaticResource CompactBadgeTextStyle}" />
+                                                                </Border>
+                                                            </StackPanel>
+                                                            <TextBlock Text="-"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="{StaticResource TextSecondaryBrush}">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding HasOpenPorts}" Value="True">
+                                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTemplateColumn Width="82"
+                                                                    Header="状态"
+                                                                    SortMemberPath="StatusDisplay">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Border Tag="{Binding StatusBadgeKind}"
+                                                                Style="{StaticResource CompactBadgeBorderStyle}"
+                                                                HorizontalAlignment="Center">
+                                                            <TextBlock Text="{Binding StatusBadgeText}"
+                                                                       Style="{StaticResource CompactBadgeTextStyle}" />
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Width="150"
+                                                                Header="最后发现"
+                                                                Binding="{Binding LastSeenDisplay}"
+                                                                IsReadOnly="True" />
+                                        </DataGrid.Columns>
+                                    </DataGrid>
 
-                                <TextBlock Text="{Binding TunnelNeighbors.EmptyStateText}"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           FontSize="13"
-                                           IsHitTestVisible="False" />
-                            </Grid>
+                                    <TextBlock Text="{Binding TunnelNeighbors.EmptyStateText}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               FontSize="13"
+                                               IsHitTestVisible="False" />
+                                </Grid>
+                            </Border>
                         </Grid>
                     </Grid>
                 </Grid>
             </TabItem>
 
-            <!-- ======================================================== -->
-            <!--  PAGE 1 - CONFIGURATION                                   -->
-            <!-- ======================================================== -->
+            <!-- Configuration -->
             <TabItem>
-                <Grid>
+                <Grid Margin="14">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
@@ -780,10 +815,9 @@
                     </Grid.RowDefinitions>
 
                     <Border Grid.Row="0"
-                            Padding="16,9"
-                            Background="{StaticResource PanelBrush}"
-                            BorderThickness="0,0,0,1"
-                            BorderBrush="{StaticResource BorderBrush}">
+                            Style="{StaticResource PanelCardStyle}"
+                            Padding="12"
+                            Margin="0,0,0,12">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Right"
                                         Orientation="Horizontal">
@@ -802,12 +836,12 @@
                             <StackPanel DockPanel.Dock="Left"
                                         VerticalAlignment="Center">
                                 <TextBlock Text="配置编辑器"
-                                           FontSize="11"
-                                           Foreground="{StaticResource TextSecondaryBrush}" />
-                                <TextBlock Text="{Binding SelectedTunnel.Name, TargetNullValue='(未选择隧道)'}"
                                            FontSize="16"
-                                           FontWeight="SemiBold"
-                                           Margin="0,1,0,0" />
+                                           FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SelectedTunnel.Name, TargetNullValue='未选择隧道'}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0" />
                             </StackPanel>
                         </DockPanel>
                     </Border>
@@ -822,15 +856,14 @@
                              FontFamily="Consolas"
                              FontSize="13"
                              Padding="16,12"
-                             BorderThickness="0"
+                             BorderThickness="1"
                              VerticalAlignment="Stretch"
                              HorizontalAlignment="Stretch" />
 
                     <Border Grid.Row="2"
-                            Padding="16,7"
-                            Background="{StaticResource PanelBrush}"
-                            BorderThickness="0,1,0,0"
-                            BorderBrush="{StaticResource BorderBrush}">
+                            Style="{StaticResource PanelCardStyle}"
+                            Padding="12,8"
+                            Margin="0,12,0,0">
                         <TextBlock Text="{Binding SelectedTunnel.ConfigPath, TargetNullValue='未选择隧道，请先前往“隧道”页面选择。'}"
                                    FontSize="11"
                                    Foreground="{StaticResource TextSecondaryBrush}"
@@ -839,21 +872,18 @@
                 </Grid>
             </TabItem>
 
-            <!-- ======================================================== -->
-            <!--  PAGE 2 - ACTIVITY LOG                                    -->
-            <!-- ======================================================== -->
+            <!-- Activity log -->
             <TabItem>
-                <Grid>
+                <Grid Margin="14">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
                     <Border Grid.Row="0"
-                            Padding="16,9"
-                            Background="{StaticResource PanelBrush}"
-                            BorderThickness="0,0,0,1"
-                            BorderBrush="{StaticResource BorderBrush}">
+                            Style="{StaticResource PanelCardStyle}"
+                            Padding="12"
+                            Margin="0,0,0,12">
                         <DockPanel>
                             <Button DockPanel.Dock="Right"
                                     Content="清空"
@@ -868,63 +898,63 @@
                         </DockPanel>
                     </Border>
 
-                    <DataGrid Grid.Row="1"
-                              ItemsSource="{Binding LogEntries}"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True"
-                              CanUserAddRows="False"
-                              CanUserDeleteRows="False"
-                              HeadersVisibility="Column"
-                              GridLinesVisibility="Horizontal"
-                              RowHeight="36"
-                              ColumnHeaderHeight="32">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Width="165"
-                                                Header="时间"
-                                                Binding="{Binding Timestamp}" />
-                            <DataGridTextColumn Width="68"
-                                                Header="级别"
-                                                Binding="{Binding Level}">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
-                                        <Setter Property="VerticalAlignment" Value="Center" />
-                                        <Style.Triggers>
-                                            <Trigger Property="Text" Value="Error">
-                                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
-                                            </Trigger>
-                                            <Trigger Property="Text" Value="Warn">
-                                                <Setter Property="Foreground" Value="{StaticResource StatusStartingBrush}" />
-                                            </Trigger>
-                                            <Trigger Property="Text" Value="Info">
-                                                <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Width="*"
-                                                Header="消息"
-                                                Binding="{Binding Message}" />
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <Border Grid.Row="1"
+                            Style="{StaticResource PanelCardStyle}">
+                        <DataGrid ItemsSource="{Binding LogEntries}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  HeadersVisibility="Column"
+                                  GridLinesVisibility="Horizontal"
+                                  RowHeight="36"
+                                  ColumnHeaderHeight="32">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Width="165"
+                                                    Header="时间"
+                                                    Binding="{Binding Timestamp}" />
+                                <DataGridTextColumn Width="68"
+                                                    Header="级别"
+                                                    Binding="{Binding Level}">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                                            <Setter Property="VerticalAlignment" Value="Center" />
+                                            <Style.Triggers>
+                                                <Trigger Property="Text" Value="Error">
+                                                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="Text" Value="Warn">
+                                                    <Setter Property="Foreground" Value="{StaticResource StatusStartingBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="Text" Value="Info">
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Width="*"
+                                                    Header="消息"
+                                                    Binding="{Binding Message}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
                 </Grid>
             </TabItem>
 
-            <!-- ======================================================== -->
-            <!--  PAGE 3 - TOOLS                                           -->
-            <!-- ======================================================== -->
+            <!-- Tools -->
             <TabItem>
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
-                    <Grid Margin="16">
+                    <Grid Margin="14">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" MinWidth="420" />
-                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="12" />
                             <ColumnDefinition Width="0.7*" MinWidth="260" />
                         </Grid.ColumnDefinitions>
 
@@ -933,15 +963,12 @@
                                    Text="工具"
                                    FontSize="18"
                                    FontWeight="SemiBold"
-                                   Margin="0,0,0,14" />
+                                   Margin="0,0,0,12" />
 
                         <Border Grid.Row="1"
                                 Grid.Column="0"
-                                Background="{StaticResource PanelBrush}"
-                                CornerRadius="8"
-                                Padding="18"
-                                BorderThickness="1"
-                                BorderBrush="{StaticResource BorderBrush}">
+                                Style="{StaticResource PanelCardStyle}"
+                                Padding="18">
                             <StackPanel>
                                 <TextBlock Text="WireGuard 密钥对生成器"
                                            FontSize="14"
@@ -1008,11 +1035,8 @@
 
                         <Border Grid.Row="1"
                                 Grid.Column="2"
-                                Background="{StaticResource PanelBrush}"
-                                CornerRadius="8"
-                                Padding="18"
-                                BorderThickness="1"
-                                BorderBrush="{StaticResource BorderBrush}">
+                                Style="{StaticResource PanelCardStyle}"
+                                Padding="18">
                             <StackPanel>
                                 <TextBlock Text="系统信息"
                                            FontSize="14"
@@ -1055,7 +1079,6 @@
                     </Grid>
                 </ScrollViewer>
             </TabItem>
-
         </TabControl>
     </Grid>
 </Window>
