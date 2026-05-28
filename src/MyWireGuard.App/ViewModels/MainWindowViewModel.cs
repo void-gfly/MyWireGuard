@@ -460,6 +460,11 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
+        if (!messageService.Confirm($"确定要删除隧道 \"{SelectedTunnel.Name}\" 吗？此操作不可撤销。", "确认删除"))
+        {
+            return;
+        }
+
         try
         {
             await tunnelServiceManager.RemoveAsync(SelectedTunnel.Name).ConfigureAwait(false);

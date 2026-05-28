@@ -227,6 +227,22 @@
             <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}" />
             <Setter Property="Padding"        Value="8,6" />
             <Setter Property="FontSize"       Value="13" />
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <!-- 显式替换 TextBox 内置右键菜单，确保继承暗色主题 -->
+                    <ContextMenu>
+                        <MenuItem Command="ApplicationCommands.Undo"      Header="撤销" />
+                        <MenuItem Command="ApplicationCommands.Redo"      Header="重做" />
+                        <Separator />
+                        <MenuItem Command="ApplicationCommands.Cut"       Header="剪切" />
+                        <MenuItem Command="ApplicationCommands.Copy"      Header="复制" />
+                        <MenuItem Command="ApplicationCommands.Paste"     Header="粘贴" />
+                        <MenuItem Command="ApplicationCommands.Delete"    Header="删除" />
+                        <Separator />
+                        <MenuItem Command="ApplicationCommands.SelectAll" Header="全选" />
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- ===================== BADGES ===================== -->
@@ -468,6 +484,20 @@
                                 <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Separator in ContextMenu -->
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="6,3" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Separator">
+                        <Border Height="1"
+                                Background="{StaticResource BorderBrush}"
+                                SnapsToDevicePixels="True" />
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
