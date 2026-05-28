@@ -789,7 +789,8 @@
                                               IsReadOnly="False"
                                               RowHeight="36"
                                               ColumnHeaderHeight="32"
-                                              CellEditEnding="NeighborDataGrid_CellEditEnding">
+                                              CellEditEnding="NeighborDataGrid_CellEditEnding"
+                                              Sorting="NeighborDataGrid_Sorting">
                                         <DataGrid.Resources>
                                             <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                                 <Setter Property="Padding" Value="8,0" />

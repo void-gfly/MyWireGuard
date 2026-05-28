@@ -200,6 +200,58 @@ public partial class MainWindow : Window
         }
     }
 
+    private void NeighborDataGrid_Sorting(object sender, DataGridSortingEventArgs e)
+    {
+        if (e.Column.Header is not string header || header != "备注名")
+        {
+            // 非备注名列：清除自定义排序，恢复默认行为
+            var defaultCv = CollectionViewSource.GetDefaultView(((DataGrid)sender).ItemsSource);
+            if (defaultCv is System.Windows.Data.ListCollectionView defaultLcv)
+            {
+                defaultLcv.CustomSort = null;
+            }
+            return;
+        }
+
+        e.Handled = true;
+        var direction = e.Column.SortDirection == ListSortDirection.Ascending
+            ? ListSortDirection.Descending
+            : ListSortDirection.Ascending;
+        e.Column.SortDirection = direction;
+
+        var cv = CollectionViewSource.GetDefaultView(((DataGrid)sender).ItemsSource);
+        if (cv is System.Windows.Data.ListCollectionView lcv)
+        {
+            lcv.CustomSort = new RemarkEmptyLastComparer(direction);
+        }
+    }
+
+    private sealed class RemarkEmptyLastComparer : System.Collections.IComparer
+    {
+        private readonly ListSortDirection direction;
+
+        public RemarkEmptyLastComparer(ListSortDirection direction)
+        {
+            this.direction = direction;
+        }
+
+        public int Compare(object? x, object? y)
+        {
+            var remarkX = (x as ViewModels.NeighborHostItemViewModel)?.Remark ?? string.Empty;
+            var remarkY = (y as ViewModels.NeighborHostItemViewModel)?.Remark ?? string.Empty;
+
+            var xEmpty = string.IsNullOrWhiteSpace(remarkX);
+            var yEmpty = string.IsNullOrWhiteSpace(remarkY);
+
+            if (xEmpty && yEmpty) return 0;
+            if (xEmpty) return 1;   // 空值永远排最后
+            if (yEmpty) return -1;  // 空值永远排最后
+
+            var cmp = string.Compare(remarkX, remarkY, StringComparison.OrdinalIgnoreCase);
+            return direction == ListSortDirection.Ascending ? cmp : -cmp;
+        }
+    }
+
     private void DisposeExitResources()
     {
         if (hasDisposedExitResources)

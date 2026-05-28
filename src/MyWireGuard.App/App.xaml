@@ -405,5 +405,73 @@
             <Setter Property="Width"           Value="0" />
         </Style>
 
+        <!-- ===================== CONTEXT MENU (全局暗色右键菜单) ===================== -->
+        <Style TargetType="ContextMenu">
+            <Setter Property="Background"      Value="{StaticResource PanelBrush}" />
+            <Setter Property="BorderBrush"     Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding"         Value="4" />
+            <Setter Property="HasDropShadow"   Value="True" />
+            <Setter Property="FontFamily"      Value="Microsoft YaHei UI" />
+            <Setter Property="FontSize"        Value="12" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <StackPanel IsItemsHost="True"
+                                        KeyboardNavigation.DirectionalNavigation="Cycle" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="MenuItem">
+            <Setter Property="Background"  Value="Transparent" />
+            <Setter Property="Foreground"  Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="FontFamily"  Value="Microsoft YaHei UI" />
+            <Setter Property="FontSize"    Value="12" />
+            <Setter Property="Padding"     Value="12,7" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="MenuItemBg"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Margin="2,1"
+                                TextElement.Foreground="{TemplateBinding Foreground}">
+                            <Grid Margin="{TemplateBinding Padding}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter Grid.Column="0"
+                                                  ContentSource="Header"
+                                                  RecognizesAccessKey="True"
+                                                  VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Margin="20,0,0,0"
+                                           Text="{TemplateBinding InputGestureText}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="MenuItemBg" Property="Background" Value="{StaticResource NavItemHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Application.Resources>
 </Application>
