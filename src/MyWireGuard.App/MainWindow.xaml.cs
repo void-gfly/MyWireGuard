@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using MyWireGuard.App.ViewModels;
 using Forms = System.Windows.Forms;
+using System.Windows.Data;
 
 namespace MyWireGuard.App;
 
@@ -189,6 +190,14 @@ public partial class MainWindow : Window
         Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         Application.Current.Shutdown();
         Environment.Exit(0);
+    }
+
+    private void NeighborDataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+    {
+        if (e.EditAction == DataGridEditAction.Commit && e.EditingElement is TextBox textBox)
+        {
+            textBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        }
     }
 
     private void DisposeExitResources()

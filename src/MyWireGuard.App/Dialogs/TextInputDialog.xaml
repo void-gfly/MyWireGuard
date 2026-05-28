@@ -10,7 +10,8 @@
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         Background="{StaticResource PanelElevatedBrush}"
-        FontFamily="Microsoft YaHei UI">
+        FontFamily="Microsoft YaHei UI"
+        ThemeMode="None">
     <Border Margin="14"
             Padding="20"
             Background="{StaticResource PanelBrush}"

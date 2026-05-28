@@ -12,7 +12,8 @@
         Background="{StaticResource WindowBrush}"
         FontFamily="Microsoft YaHei UI"
         TextOptions.TextFormattingMode="Display"
-        UseLayoutRounding="True">
+        UseLayoutRounding="True"
+        ThemeMode="None">
 
     <Window.Resources>
         <Style x:Key="TopNavItemStyle" TargetType="RadioButton">
@@ -787,7 +788,8 @@
                                               ScrollViewer.HorizontalScrollBarVisibility="Auto"
                                               IsReadOnly="False"
                                               RowHeight="36"
-                                              ColumnHeaderHeight="32">
+                                              ColumnHeaderHeight="32"
+                                              CellEditEnding="NeighborDataGrid_CellEditEnding">
                                         <DataGrid.Resources>
                                             <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                                 <Setter Property="Padding" Value="8,0" />

@@ -21,6 +21,32 @@
         <SolidColorBrush x:Key="NavItemHoverBrush"    Color="#172033" />
         <SolidColorBrush x:Key="NavItemActiveBrush"   Color="#123525" />
 
+        <!-- ===================== SYSTEM COLOR OVERRIDES (固定深色，不跟随系统主题) ===================== -->
+        <Color  x:Key="{x:Static SystemColors.WindowColorKey}">#020617</Color>
+        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}"           Color="#020617" />
+        <Color  x:Key="{x:Static SystemColors.WindowTextColorKey}">#F8FAFC</Color>
+        <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}"       Color="#F8FAFC" />
+        <Color  x:Key="{x:Static SystemColors.ControlColorKey}">#0B1120</Color>
+        <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}"          Color="#0B1120" />
+        <Color  x:Key="{x:Static SystemColors.ControlTextColorKey}">#F8FAFC</Color>
+        <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}"      Color="#F8FAFC" />
+        <Color  x:Key="{x:Static SystemColors.HighlightColorKey}">#123525</Color>
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"        Color="#123525" />
+        <Color  x:Key="{x:Static SystemColors.HighlightTextColorKey}">#F8FAFC</Color>
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}"    Color="#F8FAFC" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"     Color="#111827" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#F8FAFC" />
+        <Color  x:Key="{x:Static SystemColors.MenuColorKey}">#0F172A</Color>
+        <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}"             Color="#0F172A" />
+        <Color  x:Key="{x:Static SystemColors.MenuTextColorKey}">#F8FAFC</Color>
+        <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}"         Color="#F8FAFC" />
+        <Color  x:Key="{x:Static SystemColors.MenuHighlightColorKey}">#172033</Color>
+        <SolidColorBrush x:Key="{x:Static SystemColors.MenuHighlightBrushKey}"    Color="#172033" />
+        <Color  x:Key="{x:Static SystemColors.InfoColorKey}">#111827</Color>
+        <SolidColorBrush x:Key="{x:Static SystemColors.InfoBrushKey}"             Color="#111827" />
+        <Color  x:Key="{x:Static SystemColors.InfoTextColorKey}">#F8FAFC</Color>
+        <SolidColorBrush x:Key="{x:Static SystemColors.InfoTextBrushKey}"         Color="#F8FAFC" />
+
         <!-- ===================== CONVERTER ===================== -->
         <converters:IntEqualsBoolConverter x:Key="IntEqualsBoolConverter" />
 
@@ -333,13 +359,16 @@
 
         <Style TargetType="DataGridRow">
             <Setter Property="Background"       Value="Transparent" />
+            <Setter Property="Foreground"       Value="{StaticResource TextPrimaryBrush}" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="{StaticResource PanelElevatedBrush}" />
+                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                 </Trigger>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="{StaticResource NavItemHoverBrush}" />
+                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -348,11 +377,13 @@
             <Setter Property="Padding"          Value="12,0" />
             <Setter Property="BorderThickness"  Value="0" />
             <Setter Property="Background"       Value="Transparent" />
+            <Setter Property="Foreground"       Value="{StaticResource TextPrimaryBrush}" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background"   Value="Transparent" />
                     <Setter Property="BorderBrush"  Value="Transparent" />
+                    <Setter Property="Foreground"   Value="{StaticResource TextPrimaryBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
