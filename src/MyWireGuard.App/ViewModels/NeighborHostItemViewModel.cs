@@ -1,10 +1,17 @@
+using MyWireGuard.App.Services;
 using MyWireGuard.Core.Models;
+using System.Windows;
+using System.Windows.Threading;
 
 namespace MyWireGuard.App.ViewModels;
 
 public sealed class NeighborHostItemViewModel : ObservableObject
 {
     private readonly Action<NeighborHostItemViewModel> onRemarkChanged;
+    private readonly IMessageService messageService;
+    private readonly ISystemInteractionService systemInteractionService;
+    private readonly ITextInputDialogService textInputDialogService;
+    private readonly string metadataFilePath;
     private string ipAddress;
     private string remark;
     private NeighborRemarkSource remarkSource;
@@ -17,9 +24,19 @@ public sealed class NeighborHostItemViewModel : ObservableObject
     private DateTimeOffset? lastScannedAt;
     private bool suppressRemarkNotification;
 
-    public NeighborHostItemViewModel(NeighborHost host, Action<NeighborHostItemViewModel> onRemarkChanged)
+    public NeighborHostItemViewModel(
+        NeighborHost host,
+        string metadataFilePath,
+        Action<NeighborHostItemViewModel> onRemarkChanged,
+        IMessageService messageService,
+        ISystemInteractionService systemInteractionService,
+        ITextInputDialogService textInputDialogService)
     {
+        this.metadataFilePath = metadataFilePath;
         this.onRemarkChanged = onRemarkChanged;
+        this.messageService = messageService;
+        this.systemInteractionService = systemInteractionService;
+        this.textInputDialogService = textInputDialogService;
         ipAddress = host.IpAddress;
         remark = host.Remark ?? string.Empty;
         remarkSource = host.RemarkSource;
@@ -30,7 +47,35 @@ public sealed class NeighborHostItemViewModel : ObservableObject
         isSshOpen = host.IsSshOpen;
         lastSeenAt = host.LastSeenAt;
         lastScannedAt = host.LastScannedAt;
+
+        OpenRemoteDesktopCommand = new AsyncRelayCommand(OpenRemoteDesktopAsync, () => IsRdpOpen);
+        OpenSshCommand = new AsyncRelayCommand(OpenSshAsync, () => IsSshOpen);
+        CopyNameCommand = new AsyncRelayCommand(CopyNameAsync);
+        CopyIpCommand = new AsyncRelayCommand(CopyIpAsync);
+        CopyFileCommand = new AsyncRelayCommand(CopyFileAsync, CanUseMetadataFile);
+        OpenFileCommand = new AsyncRelayCommand(OpenFileAsync, CanUseMetadataFile);
+        OpenContainingFolderCommand = new AsyncRelayCommand(OpenContainingFolderAsync, CanUseMetadataFile);
+        RenameCommand = new AsyncRelayCommand(RenameAsync);
+        DeleteCommand = new AsyncRelayCommand(DeleteAsync, () => !string.IsNullOrWhiteSpace(Remark));
     }
+
+    public AsyncRelayCommand OpenRemoteDesktopCommand { get; }
+
+    public AsyncRelayCommand OpenSshCommand { get; }
+
+    public AsyncRelayCommand CopyNameCommand { get; }
+
+    public AsyncRelayCommand CopyIpCommand { get; }
+
+    public AsyncRelayCommand CopyFileCommand { get; }
+
+    public AsyncRelayCommand OpenFileCommand { get; }
+
+    public AsyncRelayCommand OpenContainingFolderCommand { get; }
+
+    public AsyncRelayCommand RenameCommand { get; }
+
+    public AsyncRelayCommand DeleteCommand { get; }
 
     public string IpAddress
     {
@@ -74,6 +119,7 @@ public sealed class NeighborHostItemViewModel : ObservableObject
 
             RaisePropertyChanged(nameof(DisplayName));
             RaisePropertyChanged(nameof(StatusDisplay));
+            DeleteCommand.NotifyCanExecuteChanged();
 
             if (!suppressRemarkNotification)
             {
@@ -138,6 +184,7 @@ public sealed class NeighborHostItemViewModel : ObservableObject
             {
                 RaisePropertyChanged(nameof(RdpDisplay));
                 RaisePropertyChanged(nameof(HasOpenPorts));
+                OpenRemoteDesktopCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -151,6 +198,7 @@ public sealed class NeighborHostItemViewModel : ObservableObject
             {
                 RaisePropertyChanged(nameof(SshDisplay));
                 RaisePropertyChanged(nameof(HasOpenPorts));
+                OpenSshCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -225,6 +273,12 @@ public sealed class NeighborHostItemViewModel : ObservableObject
             ? "warning"
             : "neutral";
 
+    private string PreferredName => !string.IsNullOrWhiteSpace(Remark)
+        ? Remark.Trim()
+        : !string.IsNullOrWhiteSpace(Hostname)
+            ? Hostname.Trim()
+            : IpAddress;
+
     public NeighborHost ToModel()
     {
         return new NeighborHost
@@ -267,5 +321,119 @@ public sealed class NeighborHostItemViewModel : ObservableObject
         {
             suppressRemarkNotification = false;
         }
+    }
+
+    private bool CanUseMetadataFile()
+    {
+        return !string.IsNullOrWhiteSpace(metadataFilePath);
+    }
+
+    private Task OpenRemoteDesktopAsync()
+    {
+        return ExecuteSystemActionAsync(() => systemInteractionService.OpenRemoteDesktop(IpAddress), "远程桌面");
+    }
+
+    private Task OpenSshAsync()
+    {
+        return ExecuteSystemActionAsync(() => systemInteractionService.OpenSsh(IpAddress), "SSH");
+    }
+
+    private Task CopyNameAsync()
+    {
+        return ExecuteSystemActionAsync(() => systemInteractionService.CopyText(PreferredName), "复制名字");
+    }
+
+    private Task CopyIpAsync()
+    {
+        return ExecuteSystemActionAsync(() => systemInteractionService.CopyText(IpAddress), "复制 IP");
+    }
+
+    private Task CopyFileAsync()
+    {
+        return ExecuteSystemActionAsync(() => systemInteractionService.CopyFile(metadataFilePath), "复制文件");
+    }
+
+    private Task OpenFileAsync()
+    {
+        return ExecuteSystemActionAsync(() => systemInteractionService.OpenFile(metadataFilePath), "打开文件");
+    }
+
+    private Task OpenContainingFolderAsync()
+    {
+        return ExecuteSystemActionAsync(() => systemInteractionService.OpenContainingFolder(metadataFilePath), "打开所在目录");
+    }
+
+    private Task RenameAsync()
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is not null)
+        {
+            dispatcher.BeginInvoke(new Action(ShowRenameDialog), DispatcherPriority.ApplicationIdle);
+            return Task.CompletedTask;
+        }
+
+        ShowRenameDialog();
+        return Task.CompletedTask;
+    }
+
+    private Task DeleteAsync()
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is not null)
+        {
+            dispatcher.BeginInvoke(new Action(ShowDeleteConfirmation), DispatcherPriority.ApplicationIdle);
+            return Task.CompletedTask;
+        }
+
+        ShowDeleteConfirmation();
+        return Task.CompletedTask;
+    }
+
+    private void ShowRenameDialog()
+    {
+        try
+        {
+            if (!textInputDialogService.TryShow("改名", $"为 {IpAddress} 设置备注名", Remark, out var updatedRemark))
+            {
+                return;
+            }
+
+            Remark = updatedRemark.Trim();
+        }
+        catch (Exception exception)
+        {
+            messageService.ShowError(exception.ToString(), "改名失败");
+        }
+    }
+
+    private void ShowDeleteConfirmation()
+    {
+        try
+        {
+            if (!messageService.Confirm($"确定要清空 {IpAddress} 的备注名吗？", "删除备注"))
+            {
+                return;
+            }
+
+            Remark = string.Empty;
+        }
+        catch (Exception exception)
+        {
+            messageService.ShowError(exception.ToString(), "删除备注失败");
+        }
+    }
+
+    private Task ExecuteSystemActionAsync(Action action, string title)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception exception)
+        {
+            messageService.ShowError(exception.Message, title);
+        }
+
+        return Task.CompletedTask;
     }
 }

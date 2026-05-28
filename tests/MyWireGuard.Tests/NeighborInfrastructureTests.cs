@@ -82,6 +82,27 @@ public sealed class NeighborInfrastructureTests
     }
 
     [Fact]
+    public void FileNeighborMetadataStore_GetPath_NormalizesTunnelName()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+
+        try
+        {
+            var runtimePaths = CreateRuntimePaths(tempRoot);
+            var store = new FileNeighborMetadataStore(runtimePaths);
+
+            var path = store.GetPath("demo tunnel");
+
+            Assert.EndsWith(Path.Combine("Neighbors", "demo_tunnel.neighbors.json"), path);
+        }
+        finally
+        {
+            Directory.Delete(tempRoot, true);
+        }
+    }
+
+    [Fact]
     public void MergeScanIntoMetadata_PreservesExistingNonEmptyRemarkWithoutManualFlag()
     {
         var metadata = new NeighborMetadata

@@ -40,6 +40,11 @@ public sealed class AsyncRelayCommand : ICommand
             CanExecuteChanged?.Invoke(this, EventArgs.Empty);
             await execute().ConfigureAwait(false);
         }
+        catch (Exception exception)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+                MessageBox.Show(exception.Message, "操作失败", MessageBoxButton.OK, MessageBoxImage.Error));
+        }
         finally
         {
             isExecuting = false;

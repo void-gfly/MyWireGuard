@@ -22,7 +22,7 @@ public sealed class FileNeighborMetadataStore : INeighborMetadataStore
 
     public async Task<NeighborMetadata> GetAsync(string tunnelName, CancellationToken cancellationToken = default)
     {
-        var path = GetMetadataPath(tunnelName);
+        var path = GetPath(tunnelName);
         if (!File.Exists(path))
         {
             return new NeighborMetadata { TunnelName = tunnelName };
@@ -38,13 +38,13 @@ public sealed class FileNeighborMetadataStore : INeighborMetadataStore
         runtimePaths.EnsureCreated();
         Directory.CreateDirectory(GetMetadataDirectory());
 
-        var path = GetMetadataPath(metadata.TunnelName);
+        var path = GetPath(metadata.TunnelName);
         var dto = NeighborMetadataDto.FromModel(metadata);
         await using var stream = File.Create(path);
         await JsonSerializer.SerializeAsync(stream, dto, SerializerOptions, cancellationToken).ConfigureAwait(false);
     }
 
-    internal string GetMetadataPath(string tunnelName)
+    public string GetPath(string tunnelName)
     {
         return Path.Combine(GetMetadataDirectory(), NormalizeName(tunnelName) + ".neighbors.json");
     }

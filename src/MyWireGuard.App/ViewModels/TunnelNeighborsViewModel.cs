@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Windows;
+using MyWireGuard.App.Services;
 using MyWireGuard.Core.Abstractions;
 using MyWireGuard.Core.Models;
 using MyWireGuard.Infrastructure.Services;
@@ -13,12 +14,16 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
     private readonly INetworkNeighborScanner scanner;
     private readonly IIPv4SubnetCalculator subnetCalculator;
     private readonly ILogService logService;
+    private readonly IMessageService messageService;
+    private readonly ISystemInteractionService systemInteractionService;
+    private readonly ITextInputDialogService textInputDialogService;
     private readonly Dictionary<string, NeighborHostItemViewModel> hostIndex = new(StringComparer.OrdinalIgnoreCase);
     private TunnelProfile? currentProfile;
     private CancellationTokenSource? scanCancellationTokenSource;
     private string subnetDisplay = "-";
     private string phaseDisplay = "未扫描";
     private string lastScanDisplay = "尚未扫描";
+    private string metadataFilePath = string.Empty;
     private bool hasScannableSubnet;
     private bool isScanning;
     private string emptyStateText = "请选择一个隧道。";
@@ -29,12 +34,18 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
         INeighborMetadataStore metadataStore,
         INetworkNeighborScanner scanner,
         IIPv4SubnetCalculator subnetCalculator,
-        ILogService logService)
+        ILogService logService,
+        IMessageService messageService,
+        ISystemInteractionService systemInteractionService,
+        ITextInputDialogService textInputDialogService)
     {
         this.metadataStore = metadataStore;
         this.scanner = scanner;
         this.subnetCalculator = subnetCalculator;
         this.logService = logService;
+        this.messageService = messageService;
+        this.systemInteractionService = systemInteractionService;
+        this.textInputDialogService = textInputDialogService;
 
         ScanCommand = new AsyncRelayCommand(ScanAsync, CanScan);
         CancelScanCommand = new AsyncRelayCommand(CancelScanAsync, () => IsScanning);
@@ -111,6 +122,7 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
 
         currentProfile = profile;
         this.isConnected = isConnected;
+        metadataFilePath = profile is null ? string.Empty : metadataStore.GetPath(profile.Name);
         hostIndex.Clear();
         currentMetadata = null;
 
@@ -331,7 +343,7 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var item = new NeighborHostItemViewModel(host, OnRemarkChanged);
+        var item = new NeighborHostItemViewModel(host, metadataFilePath, OnRemarkChanged, messageService, systemInteractionService, textInputDialogService);
         hostIndex[host.IpAddress] = item;
         Hosts.Add(item);
         SortHosts();
@@ -343,7 +355,7 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
         hostIndex.Clear();
         foreach (var host in hosts.OrderBy(host => IPAddress.Parse(host.IpAddress), new IpAddressComparer()))
         {
-            var item = new NeighborHostItemViewModel(host, OnRemarkChanged);
+            var item = new NeighborHostItemViewModel(host, metadataFilePath, OnRemarkChanged, messageService, systemInteractionService, textInputDialogService);
             hostIndex[host.IpAddress] = item;
             Hosts.Add(item);
         }

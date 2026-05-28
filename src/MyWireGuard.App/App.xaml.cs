@@ -32,13 +32,18 @@ public partial class App : System.Windows.Application
 		var privilegeService = new PrivilegeService();
 		var keypairService = new TunnelDllKeypairService(runtimeAssetLocator);
 		var tunnelServiceManager = new TunnelServiceManager(logService, runtimeAssetLocator);
+		var systemInteractionService = new SystemInteractionService();
+		var textInputDialogService = new TextInputDialogService();
+		var messageService = new MessageService();
 		var tunnelNeighbors = new TunnelNeighborsViewModel(
 			neighborMetadataStore,
 			new NetworkNeighborScanner(subnetCalculator, logService),
 			subnetCalculator,
-			logService);
+			logService,
+			messageService,
+			systemInteractionService,
+			textInputDialogService);
 		var fileDialogService = new FileDialogService();
-		var messageService = new MessageService();
 
 		var mainWindowViewModel = new MainWindowViewModel(
 			configStore,
