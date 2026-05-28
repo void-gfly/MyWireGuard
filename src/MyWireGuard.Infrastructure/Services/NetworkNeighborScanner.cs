@@ -245,7 +245,7 @@ public sealed class NetworkNeighborScanner : INetworkNeighborScanner
         {
             if (aliveMap.TryGetValue(existingHost.IpAddress, out var liveHost))
             {
-                ApplyManualRemark(existingHost, liveHost);
+                ApplyExistingRemark(existingHost, liveHost);
                 liveHost.LastSeenAt = now;
                 liveHost.LastScannedAt = now;
                 mergedHosts.Add(liveHost);
@@ -288,19 +288,13 @@ public sealed class NetworkNeighborScanner : INetworkNeighborScanner
         return mergedHosts.OrderBy(host => IPAddress.Parse(host.IpAddress), new IpAddressComparer()).ToList();
     }
 
-    private static void ApplyManualRemark(NeighborHost existingHost, NeighborHost liveHost)
+    private static void ApplyExistingRemark(NeighborHost existingHost, NeighborHost liveHost)
     {
-        if (existingHost.RemarkSource == NeighborRemarkSource.Manual && !string.IsNullOrWhiteSpace(existingHost.Remark))
-        {
-            liveHost.Remark = existingHost.Remark;
-            liveHost.RemarkSource = NeighborRemarkSource.Manual;
-            return;
-        }
-
         if (!string.IsNullOrWhiteSpace(existingHost.Remark))
         {
             liveHost.Remark = existingHost.Remark;
             liveHost.RemarkSource = existingHost.RemarkSource;
+            return;
         }
 
         if (string.IsNullOrWhiteSpace(liveHost.Remark) && !string.IsNullOrWhiteSpace(liveHost.Hostname))

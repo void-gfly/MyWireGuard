@@ -248,7 +248,7 @@ public sealed class NeighborHostItemViewModel : ObservableObject
         try
         {
             IpAddress = host.IpAddress;
-            if (RemarkSource != NeighborRemarkSource.Manual)
+            if (string.IsNullOrWhiteSpace(Remark))
             {
                 Remark = host.Remark ?? string.Empty;
                 RemarkSource = host.RemarkSource;

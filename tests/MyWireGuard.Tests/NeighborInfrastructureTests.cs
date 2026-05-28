@@ -82,7 +82,7 @@ public sealed class NeighborInfrastructureTests
     }
 
     [Fact]
-    public void MergeScanIntoMetadata_PreservesManualRemarkAndAutofillsHostnameOnce()
+    public void MergeScanIntoMetadata_PreservesExistingNonEmptyRemarkWithoutManualFlag()
     {
         var metadata = new NeighborMetadata
         {
@@ -92,8 +92,8 @@ public sealed class NeighborInfrastructureTests
         metadata.Hosts.Add(new NeighborHost
         {
             IpAddress = "172.16.0.10",
-            Remark = "manually-named",
-            RemarkSource = NeighborRemarkSource.Manual,
+            Remark = "custom-name",
+            RemarkSource = NeighborRemarkSource.None,
             Hostname = "old-host"
         });
 
@@ -123,8 +123,8 @@ public sealed class NeighborInfrastructureTests
         var merged = NetworkNeighborScanner.MergeScanIntoMetadata(metadata, scanResult);
 
         Assert.Equal(2, merged.Hosts.Count);
-        Assert.Equal("manually-named", merged.Hosts[0].Remark);
-        Assert.Equal(NeighborRemarkSource.Manual, merged.Hosts[0].RemarkSource);
+        Assert.Equal("custom-name", merged.Hosts[0].Remark);
+        Assert.Equal(NeighborRemarkSource.None, merged.Hosts[0].RemarkSource);
         Assert.Equal("auto-name", merged.Hosts[1].Remark);
         Assert.Equal(NeighborRemarkSource.AutoDiscovered, merged.Hosts[1].RemarkSource);
     }
