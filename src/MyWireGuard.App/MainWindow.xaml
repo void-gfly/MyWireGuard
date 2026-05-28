@@ -514,6 +514,11 @@
                                         Command="{Binding ImportCommand}"
                                         Style="{StaticResource PrimaryButtonStyle}"
                                         Padding="12,6" />
+                                <Button Content="删除"
+                                        Command="{Binding RemoveCommand}"
+                                        Style="{StaticResource DangerButtonStyle}"
+                                        Padding="12,6"
+                                        Margin="8,0,0,0" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -600,32 +605,6 @@
                                                        FontWeight="SemiBold" />
                                         </Border>
                                     </Grid>
-
-                                    <UniformGrid Columns="2" Margin="0,0,0,12">
-                                        <Button Content="{Binding ToggleTunnelButtonContent}"
-                                                Command="{Binding ToggleTunnelCommand}"
-                                                Style="{StaticResource PrimaryButtonStyle}"
-                                                Margin="0,0,6,6"
-                                                Padding="10,7" />
-                                        <Button Content="编辑配置"
-                                                Command="{Binding EditConfigCommand}"
-                                                Style="{StaticResource SecondaryButtonStyle}"
-                                                Margin="0,0,0,6"
-                                                Padding="10,7" />
-                                        <Button Content="导出"
-                                                Command="{Binding ExportCommand}"
-                                                Style="{StaticResource SecondaryButtonStyle}"
-                                                Margin="0,0,6,0"
-                                                Padding="10,7" />
-                                        <Button Content="删除"
-                                                Command="{Binding RemoveCommand}"
-                                                Style="{StaticResource DangerButtonStyle}"
-                                                Padding="10,7" />
-                                    </UniformGrid>
-
-                                    <Border Height="1"
-                                            Background="{StaticResource BorderBrush}"
-                                            Margin="0,0,0,12" />
 
                                     <TextBlock Text="配置摘要"
                                                Style="{StaticResource SectionTitleStyle}"
@@ -715,15 +694,14 @@
                                     <StackPanel Grid.Column="1"
                                                 Orientation="Horizontal"
                                                 Margin="12,0,0,0">
-                                        <Button Content="取消"
-                                                Command="{Binding TunnelNeighbors.CancelScanCommand}"
-                                                Style="{StaticResource SecondaryButtonStyle}"
-                                                Width="72"
+                                        <Button Content="{Binding ToggleTunnelButtonContent}"
+                                                Command="{Binding ToggleTunnelCommand}"
+                                                Style="{StaticResource PrimaryButtonStyle}"
                                                 Padding="10,6"
                                                 Margin="0,0,8,0" />
-                                        <Button Content="扫描网段"
-                                                Command="{Binding TunnelNeighbors.ScanCommand}"
-                                                Style="{StaticResource PrimaryButtonStyle}"
+                                        <Button Content="{Binding TunnelNeighbors.ScanButtonContent}"
+                                                Command="{Binding TunnelNeighbors.ToggleScanCommand}"
+                                                Style="{StaticResource SecondaryButtonStyle}"
                                                 Width="88"
                                                 Padding="10,6" />
                                     </StackPanel>

@@ -49,6 +49,7 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
 
         ScanCommand = new AsyncRelayCommand(ScanAsync, CanScan);
         CancelScanCommand = new AsyncRelayCommand(CancelScanAsync, () => IsScanning);
+        ToggleScanCommand = new AsyncRelayCommand(ToggleScanAsync);
     }
 
     public ObservableCollection<NeighborHostItemViewModel> Hosts { get; } = [];
@@ -56,6 +57,10 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
     public AsyncRelayCommand ScanCommand { get; }
 
     public AsyncRelayCommand CancelScanCommand { get; }
+
+    public AsyncRelayCommand ToggleScanCommand { get; }
+
+    public string ScanButtonContent => IsScanning ? "取消" : "扫描网段";
 
     public string SubnetDisplay
     {
@@ -95,6 +100,7 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
             if (SetProperty(ref isScanning, value))
             {
                 RaisePropertyChanged(nameof(StatusSummary));
+                RaisePropertyChanged(nameof(ScanButtonContent));
                 NotifyCommandStateChanged();
             }
         }
@@ -310,6 +316,11 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
     private Task CancelScanAsync()
     {
         return CancelActiveScanAsync();
+    }
+
+    private Task ToggleScanAsync()
+    {
+        return IsScanning ? CancelScanAsync() : ScanAsync();
     }
 
     private async Task RunAutomaticScanAsync()
