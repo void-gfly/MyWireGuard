@@ -156,12 +156,49 @@ public partial class MainWindow : Window
         Hide();
     }
 
+    public void BringToFrontFromExternalActivation()
+    {
+        var state = ComputeActivationState(IsVisible, ShowInTaskbar, WindowState);
+
+        if (state.ShouldShowInTaskbar)
+        {
+            ShowInTaskbar = true;
+        }
+
+        if (state.ShouldShowWindow && !IsVisible)
+        {
+            Show();
+        }
+
+        WindowState = state.TargetWindowState;
+
+        if (state.ShouldActivate)
+        {
+            if (state.ShouldTemporarilySetTopmost)
+            {
+                var originalTopmost = Topmost;
+                Topmost = true;
+                Topmost = originalTopmost;
+            }
+
+            Activate();
+            Focus();
+        }
+    }
+
+    internal static WindowActivationState ComputeActivationState(bool isVisible, bool showInTaskbar, WindowState windowState)
+    {
+        return new WindowActivationState(
+            ShouldShowWindow: true,
+            ShouldShowInTaskbar: true,
+            TargetWindowState: WindowState.Normal,
+            ShouldActivate: true,
+            ShouldTemporarilySetTopmost: true);
+    }
+
     private void ShowFromTray()
     {
-        ShowInTaskbar = true;
-        Show();
-        WindowState = WindowState.Normal;
-        Activate();
+        BringToFrontFromExternalActivation();
     }
 
     private async void ExitApplication()
@@ -267,3 +304,10 @@ public partial class MainWindow : Window
         notifyIcon.Dispose();
     }
 }
+
+internal readonly record struct WindowActivationState(
+    bool ShouldShowWindow,
+    bool ShouldShowInTaskbar,
+    WindowState TargetWindowState,
+    bool ShouldActivate,
+    bool ShouldTemporarilySetTopmost);

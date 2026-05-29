@@ -11,19 +11,44 @@ namespace MyWireGuard.App;
 
 public partial class App : System.Windows.Application
 {
+	private SingleInstanceCoordinator? singleInstanceCoordinator;
+	private bool pendingShowMainWindowRequest;
+
 	protected override void OnStartup(StartupEventArgs e)
 	{
 		base.OnStartup(e);
-
-		var runtimePaths = new AppRuntimePaths();
-		runtimePaths.EnsureCreated();
-		var runtimeAssetLocator = new RuntimeAssetLocator(runtimePaths);
-		runtimeAssetLocator.EnsureRuntimeAvailable();
 
 		if (TryRunTunnelServiceHost(e.Args))
 		{
 			return;
 		}
+
+		singleInstanceCoordinator = new SingleInstanceCoordinator();
+		var startupMode = AppStartupDecider.DetermineStartupMode(
+			e.Args,
+			singleInstanceCoordinator.TryAcquirePrimaryInstance());
+
+		if (startupMode == AppStartupMode.NotifyExistingGui)
+		{
+			try
+			{
+				singleInstanceCoordinator.NotifyPrimaryInstanceToShowWindowAsync().GetAwaiter().GetResult();
+			}
+			catch (Exception exception)
+			{
+				System.Diagnostics.Debug.WriteLine($"Failed to notify the primary GUI instance: {exception}");
+			}
+
+			Shutdown(0);
+			return;
+		}
+
+		singleInstanceCoordinator.StartListening(HandleShowMainWindowRequestedAsync);
+
+		var runtimePaths = new AppRuntimePaths();
+		runtimePaths.EnsureCreated();
+		var runtimeAssetLocator = new RuntimeAssetLocator(runtimePaths);
+		runtimeAssetLocator.EnsureRuntimeAvailable();
 
 		var logService = new InMemoryLogService();
 		var configStore = new FileConfigStore(runtimePaths, new WgQuickParser());
@@ -56,7 +81,9 @@ public partial class App : System.Windows.Application
 			messageService);
 
 		var mainWindow = new MainWindow(mainWindowViewModel);
+		MainWindow = mainWindow;
 		mainWindow.Show();
+		BringMainWindowToFrontIfPending(mainWindow);
 	}
 
 	private bool TryRunTunnelServiceHost(string[] args)
@@ -69,6 +96,38 @@ public partial class App : System.Windows.Application
 		var success = TunnelDllNative.RunTunnelService(args[1]);
 		Shutdown(success ? 0 : 1);
 		return true;
+	}
+
+	private Task HandleShowMainWindowRequestedAsync()
+	{
+		return Dispatcher.InvokeAsync(() =>
+		{
+			if (MainWindow is MainWindow mainWindow)
+			{
+				mainWindow.BringToFrontFromExternalActivation();
+				return;
+			}
+
+			pendingShowMainWindowRequest = true;
+		}).Task;
+	}
+
+	private void BringMainWindowToFrontIfPending(MainWindow mainWindow)
+	{
+		if (!pendingShowMainWindowRequest)
+		{
+			return;
+		}
+
+		pendingShowMainWindowRequest = false;
+		mainWindow.BringToFrontFromExternalActivation();
+	}
+
+	protected override void OnExit(ExitEventArgs e)
+	{
+		singleInstanceCoordinator?.Dispose();
+		singleInstanceCoordinator = null;
+		base.OnExit(e);
 	}
 }
 

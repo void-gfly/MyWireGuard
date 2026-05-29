@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\MyWireGuard.App\MyWireGuard.App.csproj" />
     <ProjectReference Include="..\..\src\MyWireGuard.Core\MyWireGuard.Core.csproj" />
     <ProjectReference Include="..\..\src\MyWireGuard.Infrastructure\MyWireGuard.Infrastructure.csproj" />
   </ItemGroup>

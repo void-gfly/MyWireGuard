@@ -18,8 +18,10 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
     private readonly ISystemInteractionService systemInteractionService;
     private readonly ITextInputDialogService textInputDialogService;
     private readonly Dictionary<string, NeighborHostItemViewModel> hostIndex = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object scanSessionLock = new();
     private TunnelProfile? currentProfile;
     private CancellationTokenSource? scanCancellationTokenSource;
+    private long scanSessionVersion;
     private string subnetDisplay = "-";
     private string phaseDisplay = "未扫描";
     private string lastScanDisplay = "尚未扫描";
@@ -124,7 +126,7 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
 
     public async Task LoadTunnelAsync(TunnelProfile? profile, bool isConnected)
     {
-        await CancelActiveScanAsync().ConfigureAwait(false);
+        CancelActiveScan();
 
         currentProfile = profile;
         this.isConnected = isConnected;
@@ -167,9 +169,12 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
         if (isConnected)
         {
             await Application.Current.Dispatcher.InvokeAsync(() => ReplaceHosts(currentMetadata.Hosts));
-            PhaseDisplay = "待扫描";
+            PhaseDisplay = currentMetadata.LastScanCompletedAt.HasValue ? "已扫描" : "待扫描";
             EmptyStateText = Hosts.Count == 0 ? "尚未发现主机。" : string.Empty;
-            _ = RunAutomaticScanAsync();
+            if (ShouldRunAutomaticScan(currentMetadata))
+            {
+                _ = RunAutomaticScanAsync();
+            }
         }
         else
         {
@@ -206,7 +211,7 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
 
         if (!isConnected)
         {
-            await CancelActiveScanAsync().ConfigureAwait(false);
+            CancelActiveScan();
             PhaseDisplay = "未连接";
             EmptyStateText = "隧道未连接，连接后自动扫描。";
             await Application.Current.Dispatcher.InvokeAsync(ClearVisibleHosts);
@@ -215,16 +220,18 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
         }
 
         await Application.Current.Dispatcher.InvokeAsync(() => ReplaceHosts(currentMetadata.Hosts));
-        PhaseDisplay = "待扫描";
+        PhaseDisplay = currentMetadata.LastScanCompletedAt.HasValue ? "已扫描" : "待扫描";
         EmptyStateText = Hosts.Count == 0 ? "尚未发现主机。" : string.Empty;
         RaiseSummaryPropertiesChanged();
-        _ = RunAutomaticScanAsync();
+        if (ShouldRunAutomaticScan(currentMetadata))
+        {
+            _ = RunAutomaticScanAsync();
+        }
     }
 
     public void Dispose()
     {
-        scanCancellationTokenSource?.Cancel();
-        scanCancellationTokenSource?.Dispose();
+        CancelActiveScan();
     }
 
     private bool CanScan()
@@ -234,88 +241,141 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
 
     private async Task ScanAsync()
     {
-        if (currentProfile is null || !isConnected)
+        if (currentProfile is null || !isConnected || IsScanning)
         {
             return;
         }
 
-        currentMetadata = await metadataStore.GetAsync(currentProfile.Name).ConfigureAwait(false);
-        if (!subnetCalculator.TryGetPrimarySubnet(currentProfile, out var subnetCidr))
-        {
-            HasScannableSubnet = false;
-            PhaseDisplay = "不可扫描";
-            return;
-        }
-
-        currentMetadata = await EnsureSubnetSnapshotAsync(currentProfile, currentMetadata, subnetCidr).ConfigureAwait(false);
-        await Application.Current.Dispatcher.InvokeAsync(() => ReplaceHosts(currentMetadata.Hosts));
-
-        await CancelActiveScanAsync().ConfigureAwait(false);
-        scanCancellationTokenSource = new CancellationTokenSource();
-
-        var progress = new Progress<NeighborScanProgress>(update =>
-        {
-            PhaseDisplay = update.Phase switch
-            {
-                NeighborScanPhase.Ping => $"Ping 扫描中 {update.ProcessedHosts}/{update.TotalHosts}",
-                NeighborScanPhase.Ports => $"端口扫描中 {update.ProcessedHosts}/{update.TotalHosts}",
-                NeighborScanPhase.Hostnames => $"主机名解析中 {update.ProcessedHosts}/{update.TotalHosts}",
-                NeighborScanPhase.Completed => $"扫描完成 · 在线 {update.AliveHosts}",
-                _ => "待扫描"
-            };
-        });
-        var hostProgress = new Progress<NeighborHostUpdate>(update =>
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                UpsertHost(update.Host);
-                EmptyStateText = string.Empty;
-                RaiseSummaryPropertiesChanged();
-            });
-        });
+        var profile = currentProfile;
+        var tunnelName = profile.Name;
+        var metadataPath = metadataStore.GetPath(tunnelName);
+        using var scanCts = new CancellationTokenSource();
+        var scanSessionId = BeginScanSession(scanCts);
 
         IsScanning = true;
         try
         {
+            var metadata = await metadataStore.GetAsync(tunnelName, scanCts.Token).ConfigureAwait(false);
+            if (!IsCurrentScanSession(scanSessionId, tunnelName))
+            {
+                return;
+            }
+
+            if (!subnetCalculator.TryGetPrimarySubnet(profile, out var subnetCidr))
+            {
+                HasScannableSubnet = false;
+                PhaseDisplay = "不可扫描";
+                return;
+            }
+
+            metadata = await EnsureSubnetSnapshotAsync(profile, metadata, subnetCidr).ConfigureAwait(false);
+            if (!IsCurrentScanSession(scanSessionId, tunnelName))
+            {
+                return;
+            }
+
+            currentMetadata = metadata;
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (IsCurrentScanSession(scanSessionId, tunnelName))
+                {
+                    ReplaceHosts(metadata.Hosts);
+                }
+            });
+
+            var progress = new Progress<NeighborScanProgress>(update =>
+            {
+                if (!IsCurrentScanSession(scanSessionId, tunnelName))
+                {
+                    return;
+                }
+
+                PhaseDisplay = update.Phase switch
+                {
+                    NeighborScanPhase.Ping => $"Ping 扫描中 {update.ProcessedHosts}/{update.TotalHosts}",
+                    NeighborScanPhase.Ports => $"端口扫描中 {update.ProcessedHosts}/{update.TotalHosts}",
+                    NeighborScanPhase.Hostnames => $"主机名解析中 {update.ProcessedHosts}/{update.TotalHosts}",
+                    NeighborScanPhase.Completed => $"扫描完成 · 在线 {update.AliveHosts}",
+                    _ => "待扫描"
+                };
+            });
+            var hostProgress = new Progress<NeighborHostUpdate>(update =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (!IsCurrentScanSession(scanSessionId, tunnelName))
+                    {
+                        return;
+                    }
+
+                    UpsertHost(update.Host, metadataPath);
+                    EmptyStateText = string.Empty;
+                    RaiseSummaryPropertiesChanged();
+                });
+            });
+
             var result = await scanner.ScanAsync(
-                currentProfile,
-                currentMetadata,
+                profile,
+                metadata,
                 progress,
                 hostProgress,
-                cancellationToken: scanCancellationTokenSource.Token).ConfigureAwait(false);
+                cancellationToken: scanCts.Token).ConfigureAwait(false);
 
-            currentMetadata = NetworkNeighborScanner.MergeScanIntoMetadata(currentMetadata, result);
-            await metadataStore.SaveAsync(currentMetadata, scanCancellationTokenSource.Token).ConfigureAwait(false);
+            if (!IsCurrentScanSession(scanSessionId, tunnelName))
+            {
+                return;
+            }
+
+            var mergedMetadata = NetworkNeighborScanner.MergeScanIntoMetadata(metadata, result);
+            await metadataStore.SaveAsync(mergedMetadata, scanCts.Token).ConfigureAwait(false);
+            if (!IsCurrentScanSession(scanSessionId, tunnelName))
+            {
+                return;
+            }
+
+            currentMetadata = mergedMetadata;
             LastScanDisplay = result.CompletedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
             SubnetDisplay = result.SubnetCidr;
 
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                ReplaceHosts(currentMetadata.Hosts);
-                RaiseSummaryPropertiesChanged();
+                if (IsCurrentScanSession(scanSessionId, tunnelName))
+                {
+                    ReplaceHosts(mergedMetadata.Hosts);
+                    RaiseSummaryPropertiesChanged();
+                }
             });
 
-            logService.WriteInfo($"Neighbor scan completed for '{currentProfile.Name}' with {result.Hosts.Count(host => host.IsAlive)} alive host(s).");
+            logService.WriteInfo($"Neighbor scan completed for '{tunnelName}' with {result.Hosts.Count(host => host.IsAlive)} alive host(s).");
         }
         catch (OperationCanceledException)
         {
-            PhaseDisplay = "扫描已取消";
-            logService.WriteInfo($"Neighbor scan canceled for '{currentProfile.Name}'.");
+            if (IsCurrentTunnel(tunnelName))
+            {
+                PhaseDisplay = "扫描已取消";
+            }
+
+            logService.WriteInfo($"Neighbor scan canceled for '{tunnelName}'.");
         }
         catch (Exception exception)
         {
-            PhaseDisplay = "扫描失败";
+            if (IsCurrentScanSession(scanSessionId, tunnelName))
+            {
+                PhaseDisplay = "扫描失败";
+            }
+
             logService.WriteError(exception.Message);
         }
         finally
         {
-            IsScanning = false;
+            EndScanSession(scanSessionId, scanCts, tunnelName);
         }
     }
 
     private Task CancelScanAsync()
     {
-        return CancelActiveScanAsync();
+        CancelActiveScan();
+        return Task.CompletedTask;
     }
 
     private Task ToggleScanAsync()
@@ -333,20 +393,31 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
         await ScanAsync().ConfigureAwait(false);
     }
 
-    private async Task CancelActiveScanAsync()
+    private static bool ShouldRunAutomaticScan(NeighborMetadata metadata)
     {
-        if (scanCancellationTokenSource is null)
+        return !metadata.LastScanCompletedAt.HasValue;
+    }
+
+    private void CancelActiveScan()
+    {
+        CancellationTokenSource? cancellationTokenSource;
+        lock (scanSessionLock)
         {
-            return;
+            scanSessionVersion++;
+            cancellationTokenSource = scanCancellationTokenSource;
+            scanCancellationTokenSource = null;
         }
 
-        scanCancellationTokenSource.Cancel();
-        scanCancellationTokenSource.Dispose();
-        scanCancellationTokenSource = null;
-        await Task.CompletedTask;
+        cancellationTokenSource?.Cancel();
+        IsScanning = false;
     }
 
     private void UpsertHost(NeighborHost host)
+    {
+        UpsertHost(host, metadataFilePath);
+    }
+
+    private void UpsertHost(NeighborHost host, string sourceMetadataFilePath)
     {
         if (hostIndex.TryGetValue(host.IpAddress, out var existingHost))
         {
@@ -354,7 +425,7 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var item = new NeighborHostItemViewModel(host, metadataFilePath, OnRemarkChanged, messageService, systemInteractionService, textInputDialogService);
+        var item = new NeighborHostItemViewModel(host, sourceMetadataFilePath, OnRemarkChanged, messageService, systemInteractionService, textInputDialogService);
         hostIndex[host.IpAddress] = item;
         Hosts.Add(item);
         SortHosts();
@@ -516,6 +587,48 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
         }
 
         return snapshot;
+    }
+
+    private long BeginScanSession(CancellationTokenSource cancellationTokenSource)
+    {
+        lock (scanSessionLock)
+        {
+            scanCancellationTokenSource?.Cancel();
+            scanSessionVersion++;
+            scanCancellationTokenSource = cancellationTokenSource;
+            return scanSessionVersion;
+        }
+    }
+
+    private void EndScanSession(long scanSessionId, CancellationTokenSource cancellationTokenSource, string tunnelName)
+    {
+        var isCurrentSession = false;
+        lock (scanSessionLock)
+        {
+            if (scanSessionVersion == scanSessionId && ReferenceEquals(scanCancellationTokenSource, cancellationTokenSource))
+            {
+                scanCancellationTokenSource = null;
+                isCurrentSession = true;
+            }
+        }
+
+        if (isCurrentSession && IsCurrentTunnel(tunnelName))
+        {
+            IsScanning = false;
+        }
+    }
+
+    private bool IsCurrentScanSession(long scanSessionId, string tunnelName)
+    {
+        lock (scanSessionLock)
+        {
+            return scanSessionVersion == scanSessionId && IsCurrentTunnel(tunnelName);
+        }
+    }
+
+    private bool IsCurrentTunnel(string tunnelName)
+    {
+        return currentProfile is not null && string.Equals(currentProfile.Name, tunnelName, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool HasMetadataChanged(NeighborMetadata left, NeighborMetadata right)
