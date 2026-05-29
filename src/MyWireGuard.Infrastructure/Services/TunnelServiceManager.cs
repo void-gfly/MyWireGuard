@@ -288,6 +288,55 @@ public sealed class TunnelServiceManager : ITunnelServiceManager
         {
             throw new Win32Exception(Marshal.GetLastWin32Error());
         }
+
+        ApplyServiceRecoveryConfiguration(service);
+    }
+
+    private static void ApplyServiceRecoveryConfiguration(IntPtr service)
+    {
+        var recoveryActions = TunnelServiceRecoveryPolicy.CreateActions()
+            .Select(action => new NativeMethods.ServiceControlAction
+            {
+                Type = action.Type switch
+                {
+                    TunnelServiceRecoveryActionType.Restart => NativeMethods.ServiceControlActionType.Restart,
+                    _ => NativeMethods.ServiceControlActionType.None
+                },
+                Delay = (uint)action.DelayMilliseconds
+            })
+            .ToArray();
+
+        var actionsHandle = GCHandle.Alloc(recoveryActions, GCHandleType.Pinned);
+        try
+        {
+            var failureActions = new NativeMethods.ServiceFailureActions
+            {
+                ResetPeriod = TunnelServiceRecoveryPolicy.ResetPeriodSeconds,
+                RebootMessage = IntPtr.Zero,
+                Command = IntPtr.Zero,
+                ActionCount = recoveryActions.Length,
+                Actions = actionsHandle.AddrOfPinnedObject()
+            };
+
+            if (!NativeMethods.ChangeServiceConfig2(service, NativeMethods.ServiceConfigType.FailureActions, ref failureActions))
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+        }
+        finally
+        {
+            actionsHandle.Free();
+        }
+
+        var failureActionsFlag = new NativeMethods.ServiceFailureActionsFlag
+        {
+            FailureActionsOnNonCrashFailures = true
+        };
+
+        if (!NativeMethods.ChangeServiceConfig2(service, NativeMethods.ServiceConfigType.FailureActionsFlag, ref failureActionsFlag))
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+        }
     }
 
     private void ControlAndWaitForStop(string tunnelName, bool waitForStop)
@@ -442,6 +491,12 @@ public sealed class TunnelServiceManager : ITunnelServiceManager
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern bool ChangeServiceConfig2(IntPtr hService, ServiceConfigType dwInfoLevel, ref ServiceDescription lpInfo);
 
+        [DllImport("advapi32.dll", SetLastError = true)]
+        public static extern bool ChangeServiceConfig2(IntPtr hService, ServiceConfigType dwInfoLevel, ref ServiceFailureActions lpInfo);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        public static extern bool ChangeServiceConfig2(IntPtr hService, ServiceConfigType dwInfoLevel, ref ServiceFailureActionsFlag lpInfo);
+
         [Flags]
         public enum ScmAccessRights : uint
         {
@@ -506,6 +561,8 @@ public sealed class TunnelServiceManager : ITunnelServiceManager
         public enum ServiceConfigType : uint
         {
             Description = 1,
+            FailureActions = 2,
+            FailureActionsFlag = 4,
             SidInfo = 5
         }
 
@@ -530,6 +587,36 @@ public sealed class TunnelServiceManager : ITunnelServiceManager
         public struct ServiceDescription
         {
             public string lpDescription;
+        }
+
+        public enum ServiceControlActionType : uint
+        {
+            None = 0,
+            Restart = 1
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct ServiceControlAction
+        {
+            public ServiceControlActionType Type;
+            public uint Delay;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct ServiceFailureActions
+        {
+            public int ResetPeriod;
+            public IntPtr RebootMessage;
+            public IntPtr Command;
+            public int ActionCount;
+            public IntPtr Actions;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct ServiceFailureActionsFlag
+        {
+            [MarshalAs(UnmanagedType.Bool)]
+            public bool FailureActionsOnNonCrashFailures;
         }
     }
 }

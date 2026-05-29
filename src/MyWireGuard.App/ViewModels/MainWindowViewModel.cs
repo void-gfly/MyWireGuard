@@ -24,7 +24,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private string editableConfigText = string.Empty;
     private string runtimeStatus = string.Empty;
     private bool isInitialized;
-    private bool isRefreshingTransientStatuses;
+    private bool isRefreshingServiceStatuses;
     private int selectedTabIndex;
     private string generatedPublicKey = string.Empty;
     private string generatedPrivateKey = string.Empty;
@@ -378,15 +378,15 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private async void OnStatusRefreshTimerTick(object? sender, EventArgs e)
     {
-        if (isRefreshingTransientStatuses)
+        if (isRefreshingServiceStatuses)
         {
             return;
         }
 
         try
         {
-            isRefreshingTransientStatuses = true;
-            await RefreshTransitioningTunnelStatusesAsync().ConfigureAwait(false);
+            isRefreshingServiceStatuses = true;
+            await RefreshTrackedTunnelStatusesAsync().ConfigureAwait(false);
         }
         catch (Exception exception)
         {
@@ -395,26 +395,34 @@ public sealed class MainWindowViewModel : ObservableObject
         }
         finally
         {
-            isRefreshingTransientStatuses = false;
+            isRefreshingServiceStatuses = false;
         }
     }
 
-    private async Task RefreshTransitioningTunnelStatusesAsync()
+    private async Task RefreshTrackedTunnelStatusesAsync()
     {
-        var transitioningTunnels = await Application.Current.Dispatcher.InvokeAsync(() =>
-            Tunnels.Where(tunnel => tunnel.Status is TunnelStatus.Starting or TunnelStatus.Stopping)
+        var trackedTunnels = await Application.Current.Dispatcher.InvokeAsync(() =>
+            Tunnels.Where(tunnel => tunnel.Status.RequiresServiceStatusRefresh())
                 .ToList());
 
-        if (transitioningTunnels.Count == 0)
+        if (trackedTunnels.Count == 0)
         {
             await Application.Current.Dispatcher.InvokeAsync(statusRefreshTimer.Stop);
             return;
         }
 
-        foreach (var tunnel in transitioningTunnels)
+        foreach (var tunnel in trackedTunnels)
         {
             var latestStatus = await tunnelServiceManager.GetStatusAsync(tunnel.Name).ConfigureAwait(false);
-            await Application.Current.Dispatcher.InvokeAsync(() => tunnel.Status = latestStatus);
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (latestStatus.IsUnexpectedStopFrom(tunnel.Status))
+                {
+                    logService.WriteError($"Tunnel '{tunnel.Name}' service stopped unexpectedly. Windows service recovery will try to restart it; check the Service Control Manager event log for the exit code.");
+                }
+
+                tunnel.Status = latestStatus;
+            });
         }
 
         await Application.Current.Dispatcher.InvokeAsync(() =>
@@ -439,8 +447,8 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void UpdateStatusRefreshState()
     {
-        var hasTransitioningTunnel = Tunnels.Any(tunnel => tunnel.Status is TunnelStatus.Starting or TunnelStatus.Stopping);
-        if (hasTransitioningTunnel)
+        var hasTrackedTunnel = Tunnels.Any(tunnel => tunnel.Status.RequiresServiceStatusRefresh());
+        if (hasTrackedTunnel)
         {
             if (!statusRefreshTimer.IsEnabled)
             {
