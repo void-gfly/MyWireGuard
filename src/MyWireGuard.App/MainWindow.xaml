@@ -16,22 +16,34 @@
         ThemeMode="None">
 
     <Window.Resources>
+        <SolidColorBrush x:Key="TunnelTabShellBrush" Color="#090B11" />
+        <SolidColorBrush x:Key="TunnelTabShellBorderBrush" Color="#1B1F2A" />
+        <SolidColorBrush x:Key="TunnelTabHoverBrush" Color="#141927" />
+        <SolidColorBrush x:Key="TunnelTabSelectedBorderBrush" Color="#6D7CFF" />
+        <LinearGradientBrush x:Key="TunnelTabSelectedBrush"
+                             StartPoint="0,0"
+                             EndPoint="1,0">
+            <GradientStop Color="#4C7BFF" Offset="0" />
+            <GradientStop Color="#7564F8" Offset="1" />
+        </LinearGradientBrush>
+
         <Style x:Key="TopNavItemStyle" TargetType="RadioButton">
             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Padding" Value="14,8" />
-            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Padding" Value="20,10" />
+            <Setter Property="Margin" Value="0,0,8,0" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
                         <Border x:Name="NavBg"
                                 Background="Transparent"
-                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderBrush="Transparent"
                                 BorderThickness="1"
-                                CornerRadius="6"
+                                CornerRadius="18"
+                                SnapsToDevicePixels="True"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
@@ -39,12 +51,30 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="NavBg" Property="Background" Value="{StaticResource NavItemActiveBrush}" />
-                                <Setter TargetName="NavBg" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                <Setter TargetName="NavBg" Property="Background" Value="{StaticResource TunnelTabSelectedBrush}" />
+                                <Setter TargetName="NavBg" Property="BorderBrush" Value="{StaticResource TunnelTabSelectedBorderBrush}" />
+                                <Setter Property="Foreground" Value="White" />
+                                <Setter TargetName="NavBg" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect BlurRadius="16"
+                                                          ShadowDepth="0"
+                                                          Color="#6D7CFF"
+                                                          Opacity="0.2" />
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="NavBg" Property="Background" Value="{StaticResource NavItemHoverBrush}" />
+                                <Setter TargetName="NavBg" Property="Background" Value="{StaticResource TunnelTabHoverBrush}" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="IsChecked" Value="True" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="NavBg" Property="Background" Value="{StaticResource TunnelTabSelectedBrush}" />
+                            </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -137,12 +167,20 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabControl">
-                        <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                      VerticalScrollBarVisibility="Disabled">
-                            <TabPanel IsItemsHost="True"
-                                      Margin="0"
-                                      Background="Transparent" />
-                        </ScrollViewer>
+                        <Border Background="{StaticResource TunnelTabShellBrush}"
+                                BorderBrush="{StaticResource TunnelTabShellBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="20"
+                                Padding="4">
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                          VerticalScrollBarVisibility="Disabled"
+                                          Focusable="False"
+                                          CanContentScroll="False">
+                                <TabPanel IsItemsHost="True"
+                                          Margin="0"
+                                          Background="Transparent" />
+                            </ScrollViewer>
+                        </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -150,21 +188,22 @@
 
         <Style x:Key="TunnelTabItemStyle" TargetType="TabItem">
             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Padding" Value="12,7" />
-            <Setter Property="MinWidth" Value="116" />
-            <Setter Property="MaxWidth" Value="190" />
+            <Setter Property="Padding" Value="16,7" />
+            <Setter Property="MinWidth" Value="112" />
+            <Setter Property="MaxWidth" Value="220" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Border x:Name="TabBg"
                                 Margin="0,0,8,0"
                                 Padding="{TemplateBinding Padding}"
-                                Background="{StaticResource PanelElevatedBrush}"
-                                BorderBrush="{StaticResource BorderBrush}"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
                                 BorderThickness="1"
-                                CornerRadius="6">
+                                CornerRadius="15"
+                                SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               ContentSource="Header"
@@ -172,12 +211,30 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="TabBg" Property="Background" Value="{StaticResource NavItemActiveBrush}" />
-                                <Setter TargetName="TabBg" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                <Setter TargetName="TabBg" Property="Background" Value="{StaticResource TunnelTabSelectedBrush}" />
+                                <Setter TargetName="TabBg" Property="BorderBrush" Value="{StaticResource TunnelTabSelectedBorderBrush}" />
+                                <Setter Property="Foreground" Value="White" />
+                                <Setter TargetName="TabBg" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect BlurRadius="16"
+                                                          ShadowDepth="0"
+                                                          Color="#6D7CFF"
+                                                          Opacity="0.2" />
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="TabBg" Property="Background" Value="{StaticResource NavItemHoverBrush}" />
+                                <Setter TargetName="TabBg" Property="Background" Value="{StaticResource TunnelTabHoverBrush}" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="IsSelected" Value="True" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="TabBg" Property="Background" Value="{StaticResource TunnelTabSelectedBrush}" />
+                            </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -297,7 +354,7 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="56" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -339,36 +396,44 @@
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center">
-                    <RadioButton Style="{StaticResource TopNavItemStyle}"
-                                 GroupName="MainNav"
-                                 IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=0}">
-                        <TextBlock Text="隧道" />
-                    </RadioButton>
-                    <RadioButton Style="{StaticResource TopNavItemStyle}"
-                                 GroupName="MainNav"
-                                 IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=1}">
-                        <TextBlock Text="配置" />
-                    </RadioButton>
-                    <RadioButton Style="{StaticResource TopNavItemStyle}"
-                                 GroupName="MainNav"
-                                 IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=2}">
-                        <TextBlock Text="接收" />
-                    </RadioButton>
-                    <RadioButton Style="{StaticResource TopNavItemStyle}"
-                                 GroupName="MainNav"
-                                 IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=3}">
-                        <TextBlock Text="活动日志" />
-                    </RadioButton>
-                    <RadioButton Style="{StaticResource TopNavItemStyle}"
-                                 GroupName="MainNav"
-                                 IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=4}">
-                        <TextBlock Text="工具" />
-                    </RadioButton>
-                </StackPanel>
+                <Border Grid.Column="1"
+                        Background="{StaticResource TunnelTabShellBrush}"
+                        BorderBrush="{StaticResource TunnelTabShellBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="22"
+                        Padding="6"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                        <RadioButton Style="{StaticResource TopNavItemStyle}"
+                                     GroupName="MainNav"
+                                     IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=0}">
+                            <TextBlock Text="隧道" />
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource TopNavItemStyle}"
+                                     GroupName="MainNav"
+                                     IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=1}">
+                            <TextBlock Text="配置" />
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource TopNavItemStyle}"
+                                     GroupName="MainNav"
+                                     IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=2}">
+                            <TextBlock Text="接收" />
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource TopNavItemStyle}"
+                                     GroupName="MainNav"
+                                     IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=3}">
+                            <TextBlock Text="活动日志" />
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource TopNavItemStyle}"
+                                     GroupName="MainNav"
+                                     IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=4}">
+                            <TextBlock Text="工具" />
+                        </RadioButton>
+                    </StackPanel>
+                </Border>
 
                 <StackPanel Grid.Column="2"
                             Orientation="Horizontal"
@@ -434,7 +499,7 @@
                     <Border Grid.Row="0"
                             Style="{StaticResource PanelCardStyle}"
                             Padding="12"
-                            Margin="0,0,0,12">
+                            Margin="0,0,0,2">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -445,15 +510,9 @@
                             <StackPanel Grid.Column="0"
                                         Margin="0,0,14,0"
                                         VerticalAlignment="Center">
-                                <TextBlock Text="隧道工作台"
+                                <TextBlock Text="{Binding TunnelCountText}"
                                            FontSize="16"
                                            FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding SelectedTunnel.ConfigPath, TargetNullValue='选择隧道后显示配置路径'}"
-                                           FontSize="10"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           Margin="0,2,0,0"
-                                           TextTrimming="CharacterEllipsis"
-                                           MaxWidth="310" />
                             </StackPanel>
 
                             <TabControl Grid.Column="1"
@@ -563,7 +622,7 @@
                             <ScrollViewer VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel Margin="14">
-                                    <Grid Margin="0,0,0,12">
+                                    <Grid Margin="0,0,0,2">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
@@ -576,7 +635,7 @@
                                             <TextBlock Text="{Binding SelectedTunnel.AddressDisplay}"
                                                        FontSize="11"
                                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                                       Margin="0,3,0,0"
+                                                       Margin="0,2,0,0"
                                                        TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
                                         <Border Grid.Column="1"
@@ -608,19 +667,19 @@
 
                                     <TextBlock Text="配置摘要"
                                                Style="{StaticResource SectionTitleStyle}"
-                                               Margin="0,0,0,10" />
+                                               Margin="0,0,0,2" />
                                     <TextBlock Text="DNS" Style="{StaticResource InfoLabelStyle}" />
                                     <TextBlock Text="{Binding SelectedTunnel.DnsDisplay}"
                                                Style="{StaticResource InfoValueStyle}"
-                                               Margin="0,0,0,10" />
+                                               Margin="0,0,0,2" />
                                     <TextBlock Text="对等端" Style="{StaticResource InfoLabelStyle}" />
                                     <TextBlock Text="{Binding SelectedTunnel.PeerCount}"
                                                Style="{StaticResource InfoValueStyle}"
-                                               Margin="0,0,0,10" />
+                                               Margin="0,0,0,2" />
                                     <TextBlock Text="端点" Style="{StaticResource InfoLabelStyle}" />
                                     <TextBlock Text="{Binding SelectedTunnel.EndpointDisplay}"
                                                Style="{StaticResource InfoValueStyle}"
-                                               Margin="0,0,0,10" />
+                                               Margin="0,0,0,2" />
                                     <TextBlock Text="配置文件" Style="{StaticResource InfoLabelStyle}" />
                                     <TextBlock Text="{Binding SelectedTunnel.ConfigPath}"
                                                Style="{StaticResource InfoValueStyle}" />
@@ -955,7 +1014,7 @@
                     <Border Grid.Row="0"
                             Style="{StaticResource PanelCardStyle}"
                             Padding="12"
-                            Margin="0,0,0,12">
+                            Margin="0,0,0,2">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Right"
                                         Orientation="Horizontal">
@@ -1023,7 +1082,7 @@
                     <Border Grid.Row="0"
                             Style="{StaticResource PanelCardStyle}"
                             Padding="12"
-                            Margin="0,0,0,12">
+                            Margin="0,0,0,2">
                         <TextBlock Text="接收记录"
                                    FontSize="16"
                                    FontWeight="SemiBold"
@@ -1041,7 +1100,7 @@
                             <TextBlock Text="收到的文本"
                                        FontSize="14"
                                        FontWeight="SemiBold"
-                                       Margin="0,0,0,10" />
+                                       Margin="0,0,0,2" />
                             <DataGrid Grid.Row="1"
                                       ItemsSource="{Binding ReceivedTexts}"
                                       AutoGenerateColumns="False"
@@ -1089,7 +1148,7 @@
                             <TextBlock Text="收到的文件"
                                        FontSize="14"
                                        FontWeight="SemiBold"
-                                       Margin="0,0,0,10" />
+                                       Margin="0,0,0,2" />
                             <DataGrid Grid.Row="1"
                                       ItemsSource="{Binding ReceivedFiles}"
                                       AutoGenerateColumns="False"
@@ -1151,7 +1210,7 @@
                     <Border Grid.Row="0"
                             Style="{StaticResource PanelCardStyle}"
                             Padding="12"
-                            Margin="0,0,0,12">
+                            Margin="0,0,0,2">
                         <DockPanel>
                             <Button DockPanel.Dock="Right"
                                     Content="清空"
@@ -1250,7 +1309,7 @@
                                    Text="工具"
                                    FontSize="18"
                                    FontWeight="SemiBold"
-                                   Margin="0,0,0,12" />
+                                   Margin="0,0,0,2" />
 
                         <Border Grid.Row="1"
                                 Grid.Column="0"
@@ -1347,33 +1406,33 @@
                                                Text="运行时状态"
                                                Foreground="{StaticResource TextSecondaryBrush}"
                                                FontSize="12"
-                                               Margin="0,0,0,10" />
+                                               Margin="0,0,0,2" />
                                     <TextBlock Grid.Row="0" Grid.Column="1"
                                                Text="{Binding RuntimeStatus}"
                                                FontSize="12"
-                                               Margin="0,0,0,10"
+                                               Margin="0,0,0,2"
                                                TextWrapping="Wrap" />
 
                                      <TextBlock Grid.Row="1" Grid.Column="0"
                                                 Text="权限级别"
                                                 Foreground="{StaticResource TextSecondaryBrush}"
                                                 FontSize="12"
-                                                Margin="0,0,0,10" />
+                                                Margin="0,0,0,2" />
                                      <TextBlock Grid.Row="1" Grid.Column="1"
                                                 Text="{Binding PrivilegeStatus}"
                                                 FontSize="12"
-                                                Margin="0,0,0,10"
+                                                Margin="0,0,0,2"
                                                 TextWrapping="Wrap" />
 
                                      <TextBlock Grid.Row="2" Grid.Column="0"
                                                 Text="监听状态"
                                                 Foreground="{StaticResource TextSecondaryBrush}"
                                                 FontSize="12"
-                                                Margin="0,0,0,10" />
+                                                Margin="0,0,0,2" />
                                      <TextBlock Grid.Row="2" Grid.Column="1"
                                                 Text="{Binding InterconnectListenerStatus}"
                                                 FontSize="12"
-                                                Margin="0,0,0,10"
+                                                Margin="0,0,0,2"
                                                 TextWrapping="Wrap" />
 
                                      <TextBlock Grid.Row="3" Grid.Column="0"

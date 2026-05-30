@@ -110,6 +110,8 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public ObservableCollection<TunnelItemViewModel> Tunnels { get; } = [];
 
+    public string TunnelCountText => $"隧道总数: {Tunnels.Count}";
+
     public ObservableCollection<LogEntry> LogEntries { get; } = [];
 
     public ObservableCollection<InterconnectReceiveTextItemViewModel> ReceivedTexts { get; } = [];
@@ -277,6 +279,7 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 Tunnels.Add(item);
             }
+            RaisePropertyChanged(nameof(TunnelCountText));
 
             SelectedTunnel = Tunnels.FirstOrDefault(tunnel => string.Equals(tunnel.Name, selectedName, StringComparison.OrdinalIgnoreCase))
                 ?? Tunnels.FirstOrDefault();
