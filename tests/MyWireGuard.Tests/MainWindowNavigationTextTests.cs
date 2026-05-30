@@ -27,7 +27,9 @@ public sealed class MainWindowNavigationTextTests
     public void SystemInfoPanel_ShouldContainInterconnectStatusAndPortBindings()
     {
         var xaml = ReadMainWindowXaml();
+        var systemInfoSection = ExtractSection(xaml, "Text=\"系统信息\"", "</Grid>");
 
+        Assert.Equal(4, CountOccurrences(systemInfoSection, "<RowDefinition Height=\"Auto\" />"));
         Assert.Contains("Text=\"监听状态\"", xaml);
         Assert.Contains("Text=\"监听端口\"", xaml);
         Assert.Contains("Text=\"{Binding InterconnectListenerStatus}\"", xaml);
@@ -48,5 +50,33 @@ public sealed class MainWindowNavigationTextTests
             "MainWindow.xaml"));
 
         return File.ReadAllText(xamlPath, Encoding.UTF8);
+    }
+
+    private static string ExtractSection(string source, string startMarker, string endMarker)
+    {
+        var startIndex = source.IndexOf(startMarker, StringComparison.Ordinal);
+        Assert.True(startIndex >= 0, $"Could not find marker '{startMarker}'.");
+
+        var endIndex = source.IndexOf(endMarker, startIndex, StringComparison.Ordinal);
+        Assert.True(endIndex >= 0, $"Could not find end marker '{endMarker}'.");
+
+        return source[startIndex..endIndex];
+    }
+
+    private static int CountOccurrences(string source, string value)
+    {
+        var count = 0;
+        var searchIndex = 0;
+        while (true)
+        {
+            var index = source.IndexOf(value, searchIndex, StringComparison.Ordinal);
+            if (index < 0)
+            {
+                return count;
+            }
+
+            count++;
+            searchIndex = index + value.Length;
+        }
     }
 }
