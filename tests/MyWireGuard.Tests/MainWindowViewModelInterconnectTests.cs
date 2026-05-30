@@ -111,6 +111,65 @@ public sealed class MainWindowViewModelInterconnectTests
         });
     }
 
+    [Fact]
+    public void Constructor_ShouldLoadPreexistingInterconnectHistory()
+    {
+        RunOnStaThread(async () =>
+        {
+            EnsureApplication();
+
+            var interconnectService = new FakeInterconnectService();
+            interconnectService.SeedTextRecords(
+            [
+                new InterconnectReceiveTextRecord(DateTimeOffset.Now, "10.0.0.9", "latest"),
+                new InterconnectReceiveTextRecord(DateTimeOffset.Now.AddMinutes(-1), "10.0.0.8", "older")
+            ]);
+            interconnectService.SeedFileRecords(
+            [
+                new InterconnectReceiveFileRecord(DateTimeOffset.Now, "10.0.0.7", "latest.txt", 9, @"C:\Temp\latest.txt"),
+                new InterconnectReceiveFileRecord(DateTimeOffset.Now.AddMinutes(-1), "10.0.0.6", "older.txt", 8, @"C:\Temp\older.txt")
+            ]);
+
+            var viewModel = new MainWindowViewModel(
+                new FakeConfigStore(),
+                new FakeTunnelServiceManager(),
+                new FakeKeypairService(),
+                new TestLogService(),
+                new FakePrivilegeService(),
+                new TunnelNeighborsViewModel(
+                    new FakeNeighborMetadataStore(),
+                    new FakeScanner(),
+                    new FakeSubnetCalculator(),
+                    new TestLogService(),
+                    new TestMessageService(),
+                    new TestSystemInteractionService(),
+                    new TestTextInputDialogService(),
+                    interconnectService,
+                    new FakeFileDialogService()),
+                new FakeFileDialogService(),
+                new TestMessageService(),
+                interconnectService,
+                new TestSystemInteractionService());
+
+            try
+            {
+                await PumpDispatcherAsync();
+
+                Assert.Equal(2, viewModel.ReceivedTexts.Count);
+                Assert.Equal("latest", viewModel.ReceivedTexts[0].Text);
+                Assert.Equal("older", viewModel.ReceivedTexts[1].Text);
+                Assert.Equal(2, viewModel.ReceivedFiles.Count);
+                Assert.Equal("latest.txt", viewModel.ReceivedFiles[0].FileName);
+                Assert.Equal("older.txt", viewModel.ReceivedFiles[1].FileName);
+            }
+            finally
+            {
+                viewModel.Shutdown();
+                await interconnectService.DisposeAsync();
+            }
+        });
+    }
+
     private static void EnsureApplication()
     {
         if (Application.Current is null)
@@ -192,6 +251,18 @@ public sealed class MainWindowViewModelInterconnectTests
         {
             fileRecords.Add(record);
             FileReceived?.Invoke(this, record);
+        }
+
+        public void SeedTextRecords(IEnumerable<InterconnectReceiveTextRecord> records)
+        {
+            textRecords.Clear();
+            textRecords.AddRange(records);
+        }
+
+        public void SeedFileRecords(IEnumerable<InterconnectReceiveFileRecord> records)
+        {
+            fileRecords.Clear();
+            fileRecords.AddRange(records);
         }
 
         public void UpdateListenerState(string statusText, int port)

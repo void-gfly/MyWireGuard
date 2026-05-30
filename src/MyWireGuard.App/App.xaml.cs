@@ -57,6 +57,7 @@ public partial class App : System.Windows.Application
 		var logService = new InMemoryLogService();
 		var configStore = new FileConfigStore(runtimePaths, new WgQuickParser());
 		var neighborMetadataStore = new FileNeighborMetadataStore(runtimePaths);
+		var interconnectRecordStore = new FileInterconnectRecordStore(runtimePaths, logService);
 		var subnetCalculator = new IPv4SubnetCalculator();
 		var privilegeService = new PrivilegeService();
 		var keypairService = new TunnelDllKeypairService(runtimeAssetLocator);
@@ -67,6 +68,7 @@ public partial class App : System.Windows.Application
         interconnectService = new InterconnectService(
             logService,
             Path.Combine(AppContext.BaseDirectory, "Data", "RecvFile"),
+			interconnectRecordStore,
             InterconnectLimits.DefaultPort);
         interconnectService.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
 		var tunnelNeighbors = new TunnelNeighborsViewModel(

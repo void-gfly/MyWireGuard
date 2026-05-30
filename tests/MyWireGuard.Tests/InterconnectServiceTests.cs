@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using MyWireGuard.Core.Abstractions;
 using MyWireGuard.Core.Models;
+using MyWireGuard.Infrastructure.Config;
 using MyWireGuard.Infrastructure.Services;
 using System.Text.Json;
 
@@ -221,6 +222,57 @@ public sealed class InterconnectServiceTests : IDisposable
         Assert.Contains(entries, entry => entry.Message.Contains("互联消息数据提前结束", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task InterconnectService_ShouldLoadPersistedLatestTwentyRecordsAfterRestart()
+    {
+        var receiveDirectory = Path.Combine(tempRoot, "recv");
+        var runtimePaths = CreateRuntimePaths(tempRoot);
+
+        await using (var service = new InterconnectService(
+            new TestLogService(),
+            receiveDirectory,
+            new FileInterconnectRecordStore(runtimePaths, new TestLogService()),
+            7727))
+        {
+            await service.StartAsync(CancellationToken.None);
+
+            for (var index = 0; index < 25; index++)
+            {
+                var sourcePath = Path.Combine(tempRoot, $"file-{index}.txt");
+                await File.WriteAllTextAsync(sourcePath, $"payload-{index}", CancellationToken.None);
+                await service.SendTextAsync("127.0.0.1", 7727, $"text-{index}", CancellationToken.None);
+                await service.SendFileAsync("127.0.0.1", 7727, sourcePath, null, CancellationToken.None);
+            }
+
+            await WaitForAsync(
+                () => service.GetReceivedTextRecords().Count == 20
+                    && service.GetReceivedTextRecords()[0].Text == "text-24"
+                    && service.GetReceivedTextRecords()[^1].Text == "text-5"
+                    && service.GetReceivedFileRecords().Count == 20
+                    && service.GetReceivedFileRecords()[0].FileName == "file-24.txt"
+                    && service.GetReceivedFileRecords()[^1].FileName == "file-5.txt",
+                () => true,
+                () => string.Join(Environment.NewLine, service.GetReceivedTextRecords().Select(record => record.Text)));
+        }
+
+        await using var restartedService = new InterconnectService(
+            new TestLogService(),
+            receiveDirectory,
+            new FileInterconnectRecordStore(runtimePaths, new TestLogService()),
+            7728);
+
+        var loadedTexts = restartedService.GetReceivedTextRecords();
+        var loadedFiles = restartedService.GetReceivedFileRecords();
+
+        Assert.Equal(20, loadedTexts.Count);
+        Assert.Equal("text-24", loadedTexts[0].Text);
+        Assert.Equal("text-5", loadedTexts[^1].Text);
+        Assert.Equal(20, loadedFiles.Count);
+        Assert.Equal("file-24.txt", loadedFiles[0].FileName);
+        Assert.Equal("file-5.txt", loadedFiles[^1].FileName);
+        Assert.All(loadedFiles, record => Assert.True(File.Exists(record.SavedPath)));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(tempRoot))
@@ -247,6 +299,12 @@ public sealed class InterconnectServiceTests : IDisposable
     private static string GetLogDebugInfo(TestLogService logService)
     {
         return string.Join(Environment.NewLine, logService.GetEntries().Select(entry => $"{entry.Level}: {entry.Message}"));
+    }
+
+    private static AppRuntimePaths CreateRuntimePaths(string rootPath)
+    {
+        Environment.SetEnvironmentVariable("LOCALAPPDATA", rootPath);
+        return new AppRuntimePaths();
     }
 
     private static async Task SendRawMessageAsync(int port, ReadOnlyMemory<byte> payload)

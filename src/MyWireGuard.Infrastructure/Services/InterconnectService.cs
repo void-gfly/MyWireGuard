@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Collections.Concurrent;
 using System.IO.Pipelines;
 using System.Net;
 using System.Net.Sockets;
@@ -15,13 +14,16 @@ public sealed class InterconnectService : IInterconnectService
     private const byte TextMessageType = 1;
     private const byte FileMessageType = 2;
     private const byte LocalInfoRequestMessageType = 3;
+    private const int MaxPersistedReceiveRecords = 20;
     private static readonly Encoding Utf8 = new UTF8Encoding(false, true);
 
     private readonly ILogService logService;
     private readonly string receiveDirectory;
+    private readonly IInterconnectRecordStore? recordStore;
     private readonly int port;
-    private readonly ConcurrentQueue<InterconnectReceiveTextRecord> textRecords = new();
-    private readonly ConcurrentQueue<InterconnectReceiveFileRecord> fileRecords = new();
+    private readonly Lock recordsLock = new();
+    private readonly List<InterconnectReceiveTextRecord> textRecords = [];
+    private readonly List<InterconnectReceiveFileRecord> fileRecords = [];
     private readonly SemaphoreSlim lifecycleLock = new(1, 1);
     private TcpListener? listener;
     private CancellationTokenSource? listenerCancellationTokenSource;
@@ -29,10 +31,22 @@ public sealed class InterconnectService : IInterconnectService
     private string listenerStatusText = "已停止";
 
     public InterconnectService(ILogService logService, string receiveDirectory, int port = InterconnectLimits.DefaultPort)
+        : this(logService, receiveDirectory, null, port)
+    {
+    }
+
+    public InterconnectService(
+        ILogService logService,
+        string receiveDirectory,
+        IInterconnectRecordStore? recordStore,
+        int port = InterconnectLimits.DefaultPort)
     {
         this.logService = logService;
         this.receiveDirectory = receiveDirectory;
+        this.recordStore = recordStore;
         this.port = port;
+
+        LoadPersistedRecords();
     }
 
     public string ListenerStatusText => listenerStatusText;
@@ -49,12 +63,18 @@ public sealed class InterconnectService : IInterconnectService
 
     public IReadOnlyList<InterconnectReceiveTextRecord> GetReceivedTextRecords()
     {
-        return textRecords.ToArray();
+        lock (recordsLock)
+        {
+            return textRecords.AsEnumerable().Reverse().ToArray();
+        }
     }
 
     public IReadOnlyList<InterconnectReceiveFileRecord> GetReceivedFileRecords()
     {
-        return fileRecords.ToArray();
+        lock (recordsLock)
+        {
+            return fileRecords.AsEnumerable().Reverse().ToArray();
+        }
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -301,8 +321,9 @@ public sealed class InterconnectService : IInterconnectService
         var payload = await ReadBytesAsync(reader, payloadLength, cancellationToken).ConfigureAwait(false);
         var text = Utf8.GetString(payload);
         var record = new InterconnectReceiveTextRecord(DateTimeOffset.Now, sourceIpAddress, text);
-        textRecords.Enqueue(record);
+        AddTextRecord(record);
         TextReceived?.Invoke(this, record);
+        await TryPersistTextRecordsAsync(cancellationToken).ConfigureAwait(false);
         logService.WriteInfo($"Interconnect text received from {sourceIpAddress}.");
     }
 
@@ -346,9 +367,125 @@ public sealed class InterconnectService : IInterconnectService
         }
 
         var record = new InterconnectReceiveFileRecord(DateTimeOffset.Now, sourceIpAddress, fileName, fileLength, savedPath);
-        fileRecords.Enqueue(record);
+        AddFileRecord(record);
         FileReceived?.Invoke(this, record);
+        await TryPersistFileRecordsAsync(cancellationToken).ConfigureAwait(false);
         logService.WriteInfo($"Interconnect file received from {sourceIpAddress}: {fileName}.");
+    }
+
+    private void LoadPersistedRecords()
+    {
+        if (recordStore is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var loadedTextRecords = recordStore.GetTextRecordsAsync(CancellationToken.None).GetAwaiter().GetResult();
+            var loadedFileRecords = recordStore.GetFileRecordsAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+            lock (recordsLock)
+            {
+                textRecords.Clear();
+                textRecords.AddRange(TakeNewest(loadedTextRecords));
+                fileRecords.Clear();
+                fileRecords.AddRange(TakeNewest(loadedFileRecords));
+            }
+        }
+        catch (Exception exception)
+        {
+            logService.WriteError($"Failed to load persisted interconnect records: {exception.Message}");
+        }
+    }
+
+    private void AddTextRecord(InterconnectReceiveTextRecord record)
+    {
+        lock (recordsLock)
+        {
+            textRecords.Add(record);
+            TrimOldest(textRecords);
+        }
+    }
+
+    private void AddFileRecord(InterconnectReceiveFileRecord record)
+    {
+        lock (recordsLock)
+        {
+            fileRecords.Add(record);
+            TrimOldest(fileRecords);
+        }
+    }
+
+    private async Task TryPersistTextRecordsAsync(CancellationToken cancellationToken)
+    {
+        if (recordStore is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await recordStore.SaveTextRecordsAsync(GetTextSnapshot(), cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            logService.WriteError($"Failed to persist interconnect text records: {exception.Message}");
+        }
+    }
+
+    private async Task TryPersistFileRecordsAsync(CancellationToken cancellationToken)
+    {
+        if (recordStore is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await recordStore.SaveFileRecordsAsync(GetFileSnapshot(), cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            logService.WriteError($"Failed to persist interconnect file records: {exception.Message}");
+        }
+    }
+
+    private IReadOnlyList<InterconnectReceiveTextRecord> GetTextSnapshot()
+    {
+        lock (recordsLock)
+        {
+            return textRecords.ToArray();
+        }
+    }
+
+    private IReadOnlyList<InterconnectReceiveFileRecord> GetFileSnapshot()
+    {
+        lock (recordsLock)
+        {
+            return fileRecords.ToArray();
+        }
+    }
+
+    private static void TrimOldest<TRecord>(List<TRecord> records)
+    {
+        var overflowCount = records.Count - MaxPersistedReceiveRecords;
+        if (overflowCount <= 0)
+        {
+            return;
+        }
+
+        records.RemoveRange(0, overflowCount);
+    }
+
+    private static IReadOnlyList<TRecord> TakeNewest<TRecord>(IReadOnlyList<TRecord> records)
+    {
+        if (records.Count <= MaxPersistedReceiveRecords)
+        {
+            return records;
+        }
+
+        return records.Skip(records.Count - MaxPersistedReceiveRecords).ToArray();
     }
 
     private static async Task CopyExactToFileAsync(PipeReader reader, FileStream destination, long remainingBytes, CancellationToken cancellationToken)
