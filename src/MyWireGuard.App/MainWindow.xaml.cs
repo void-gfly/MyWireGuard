@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Drawing;
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -23,6 +24,7 @@ public partial class MainWindow : Window
     {
         this.viewModel = viewModel;
         InitializeComponent();
+        Title = BuildWindowTitle();
         DataContext = viewModel;
         trayStatusMenuItem = new MenuItem
         {
@@ -38,6 +40,18 @@ public partial class MainWindow : Window
         Closing += OnClosing;
         Closed += OnClosed;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private string BuildWindowTitle()
+    {
+        var informationalVersion = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+        var displayVersion = informationalVersion?.Split('+', 2)[0];
+
+        return string.IsNullOrWhiteSpace(displayVersion)
+            ? Title
+            : $"{Title} v{displayVersion}";
     }
 
     private ContextMenu CreateTrayContextMenu()
