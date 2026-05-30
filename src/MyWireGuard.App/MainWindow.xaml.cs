@@ -20,6 +20,11 @@ public partial class MainWindow : Window
     private bool hasDisposedExitResources;
     private bool isExitRequested;
 
+    private bool isTunnelLeftPanelCollapsed;
+    private bool wasTunnelLeftPanelAutoCollapsed;
+    private const double TunnelLeftPanelExpandedWidth = 300;
+    private const double AutoCollapseWidthThreshold = 1050;
+
     public MainWindow(MainWindowViewModel viewModel)
     {
         this.viewModel = viewModel;
@@ -241,6 +246,40 @@ public partial class MainWindow : Window
         Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         Application.Current.Shutdown();
         Environment.Exit(0);
+    }
+
+    private void TunnelLeftPanelToggle_Click(object sender, RoutedEventArgs e)
+    {
+        wasTunnelLeftPanelAutoCollapsed = false;
+        SetTunnelLeftPanelCollapsed(!isTunnelLeftPanelCollapsed);
+    }
+
+    private void SetTunnelLeftPanelCollapsed(bool collapsed)
+    {
+        isTunnelLeftPanelCollapsed = collapsed;
+        TunnelLeftColumn.Width = collapsed ? new GridLength(0) : new GridLength(TunnelLeftPanelExpandedWidth);
+        TunnelSpacerColumn.Width = collapsed ? new GridLength(0) : new GridLength(12);
+        TunnelLeftPanelToggleIconScale.ScaleX = collapsed ? -1 : 1;
+        TunnelLeftPanelToggleBtn.ToolTip = collapsed ? "展开面板" : "折叠面板";
+    }
+
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+    {
+        base.OnRenderSizeChanged(sizeInfo);
+        if (!sizeInfo.WidthChanged)
+            return;
+
+        var newWidth = sizeInfo.NewSize.Width;
+        if (newWidth < AutoCollapseWidthThreshold && !isTunnelLeftPanelCollapsed)
+        {
+            wasTunnelLeftPanelAutoCollapsed = true;
+            SetTunnelLeftPanelCollapsed(true);
+        }
+        else if (newWidth >= AutoCollapseWidthThreshold && isTunnelLeftPanelCollapsed && wasTunnelLeftPanelAutoCollapsed)
+        {
+            wasTunnelLeftPanelAutoCollapsed = false;
+            SetTunnelLeftPanelCollapsed(false);
+        }
     }
 
     private void NeighborDataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)

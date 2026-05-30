@@ -508,11 +508,35 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0"
+                                        Orientation="Horizontal"
                                         Margin="0,0,14,0"
                                         VerticalAlignment="Center">
+                                <Button x:Name="TunnelLeftPanelToggleBtn"
+                                        Click="TunnelLeftPanelToggle_Click"
+                                        Width="28"
+                                        Height="28"
+                                        Margin="0,0,10,0"
+                                        ToolTip="折叠面板"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Padding="5">
+                                    <Viewbox Width="16" Height="12">
+                                        <Canvas Width="18" Height="13" RenderTransformOrigin="0.5,0.5">
+                                            <Canvas.RenderTransform>
+                                                <ScaleTransform x:Name="TunnelLeftPanelToggleIconScale" />
+                                            </Canvas.RenderTransform>
+                                            <Path Stroke="{StaticResource TextSecondaryBrush}"
+                                                  StrokeThickness="1.4"
+                                                  Fill="Transparent"
+                                                  Data="M2,0 H16 Q18,0 18,2 V11 Q18,13 16,13 H2 Q0,13 0,11 V2 Q0,0 2,0 Z" />
+                                            <Path Fill="{StaticResource TextSecondaryBrush}"
+                                                  Data="M0,2 Q0,0 2,0 H6 V13 H2 Q0,13 0,11 Z" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </Button>
                                 <TextBlock Text="{Binding TunnelCountText}"
                                            FontSize="16"
-                                           FontWeight="SemiBold" />
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center" />
                             </StackPanel>
 
                             <TabControl Grid.Column="1"
@@ -584,8 +608,8 @@
 
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="300" />
-                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition x:Name="TunnelLeftColumn" Width="300" />
+                            <ColumnDefinition x:Name="TunnelSpacerColumn" Width="12" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
@@ -608,7 +632,7 @@
                             </TextBlock.Style>
                         </TextBlock>
 
-                        <Border Grid.Column="0">
+                        <Border Grid.Column="0" x:Name="TunnelLeftPanelBorder">
                             <Border.Style>
                                 <Style TargetType="Border" BasedOn="{StaticResource PanelCardStyle}">
                                     <Setter Property="Visibility" Value="Visible" />
