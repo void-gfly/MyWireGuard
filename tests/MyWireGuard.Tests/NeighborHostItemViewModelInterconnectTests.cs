@@ -19,16 +19,16 @@ public sealed class NeighborHostItemViewModelInterconnectTests : IDisposable
     }
 
     [Fact]
-    public void InterconnectCommands_ShouldBeDisabled_WhenHostDoesNotExposePort7727()
+    public void InterconnectCommands_ShouldRemainEnabled_WhenHostDoesNotExposePort7727()
     {
         RunOnStaThread(() =>
         {
             EnsureApplication();
             var viewModel = CreateViewModel(new NeighborHost { IpAddress = "10.0.0.8", IsInterconnectOpen = false }, out _, out _);
 
-            Assert.False(viewModel.HasInterconnectActions);
-            Assert.False(viewModel.SendTextCommand.CanExecute(null));
-            Assert.False(viewModel.SendFileCommand.CanExecute(null));
+            Assert.True(viewModel.HasInterconnectActions);
+            Assert.True(viewModel.SendTextCommand.CanExecute(null));
+            Assert.True(viewModel.SendFileCommand.CanExecute(null));
 
             return Task.CompletedTask;
         });

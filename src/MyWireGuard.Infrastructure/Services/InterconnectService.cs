@@ -70,7 +70,9 @@ public sealed class InterconnectService : IInterconnectService
             listener = new TcpListener(IPAddress.Any, port);
             listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             listener.Start();
-            listenerTask = Task.Run(() => AcceptLoopAsync(listener, listenerCancellationTokenSource.Token), CancellationToken.None);
+            var startedListener = listener;
+            var startedCancellationTokenSource = listenerCancellationTokenSource;
+            listenerTask = Task.Run(() => AcceptLoopAsync(startedListener, startedCancellationTokenSource.Token), CancellationToken.None);
             SetListenerStatus("监听中");
             logService.WriteInfo($"Interconnect listener started on 0.0.0.0:{port}.");
         }

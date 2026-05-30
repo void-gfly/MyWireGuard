@@ -815,8 +815,7 @@
                                                                 <MenuItem Header="删除"
                                                                           Command="{Binding DeleteCommand}" />
                                                             </MenuItem>
-                                                            <MenuItem Header="互联"
-                                                                      IsEnabled="{Binding HasInterconnectActions}">
+                                                            <MenuItem Header="互联">
                                                                 <MenuItem Header="发送文本信息"
                                                                           Command="{Binding SendTextCommand}" />
                                                                 <MenuItem Header="发送文件"

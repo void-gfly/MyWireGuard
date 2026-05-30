@@ -288,7 +288,7 @@ public sealed class NeighborHostItemViewModel : ObservableObject
 
     public bool HasOpenPorts => IsRdpOpen || IsSshOpen;
 
-    public bool HasInterconnectActions => IsInterconnectOpen;
+    public bool HasInterconnectActions => !string.IsNullOrWhiteSpace(IpAddress);
 
     public string LastSeenDisplay => LastSeenAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
 
