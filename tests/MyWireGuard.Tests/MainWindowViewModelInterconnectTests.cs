@@ -296,6 +296,12 @@ public sealed class MainWindowViewModelInterconnectTests
             value = initialValue;
             return true;
         }
+
+        public bool TryShowMultiline(string title, string prompt, string initialValue, out string value)
+        {
+            value = initialValue;
+            return true;
+        }
     }
 
     private sealed class FakeFileDialogService : IFileDialogService

@@ -4,9 +4,9 @@
         Title="输入"
         Width="460"
         MinWidth="460"
-    MinHeight="300"
+        MinHeight="300"
         ResizeMode="NoResize"
-    SizeToContent="Height"
+        SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         Background="{StaticResource PanelElevatedBrush}"
@@ -22,29 +22,24 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <TextBlock Text="修改备注名"
+            <TextBlock x:Name="HeaderTextBlock"
+                       Text="输入"
                        FontSize="17"
                        FontWeight="SemiBold"
                        Foreground="{StaticResource TextPrimaryBrush}" />
 
             <TextBlock Grid.Row="1"
-                       Margin="0,10,0,0"
-                       Text="输入新的主机备注名"
-                       Foreground="{StaticResource TextSecondaryBrush}"
-                       FontSize="12" />
-
-            <TextBlock Grid.Row="2"
                        x:Name="PromptTextBlock"
                        Margin="0,14,0,8"
                        Foreground="{StaticResource TextSecondaryBrush}"
                        TextWrapping="Wrap" />
 
-            <Border Grid.Row="3"
+            <Border x:Name="InputBorder"
+                    Grid.Row="2"
                     Height="42"
                     Margin="0,0,0,4"
                     Background="{StaticResource PanelElevatedBrush}"
@@ -60,7 +55,7 @@
                          Padding="10,0" />
             </Border>
 
-            <StackPanel Grid.Row="4"
+            <StackPanel Grid.Row="3"
                         Margin="0,18,0,0"
                         Orientation="Horizontal"
                         HorizontalAlignment="Right">

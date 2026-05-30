@@ -428,7 +428,7 @@ public sealed class NeighborHostItemViewModel : ObservableObject
     {
         try
         {
-            if (!textInputDialogService.TryShow("发送文本信息", $"发送到 {IpAddress}", string.Empty, out var text))
+            if (!textInputDialogService.TryShowMultiline("发送文本信息", $"发送到 {IpAddress}", string.Empty, out var text))
             {
                 return;
             }
@@ -439,7 +439,7 @@ public sealed class NeighborHostItemViewModel : ObservableObject
                 return;
             }
 
-            await interconnectService.SendTextAsync(IpAddress, InterconnectLimits.DefaultPort, trimmed, CancellationToken.None).ConfigureAwait(false);
+            await interconnectService.SendTextAsync(IpAddress, InterconnectLimits.DefaultPort, trimmed, CancellationToken.None);
             messageService.ShowInfo("文本发送完成。", "互联");
         }
         catch (Exception exception)
@@ -478,7 +478,7 @@ public sealed class NeighborHostItemViewModel : ObservableObject
             progressWindow.Show();
             try
             {
-                await interconnectService.SendFileAsync(IpAddress, InterconnectLimits.DefaultPort, filePath, progress, CancellationToken.None).ConfigureAwait(false);
+                await interconnectService.SendFileAsync(IpAddress, InterconnectLimits.DefaultPort, filePath, progress, CancellationToken.None);
                 progressWindow.Close();
                 messageService.ShowInfo("文件发送完成。", "互联");
             }

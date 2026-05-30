@@ -186,6 +186,12 @@ public sealed class NeighborHostItemViewModelInterconnectTests : IDisposable
             value = "hello";
             return true;
         }
+
+        public bool TryShowMultiline(string title, string prompt, string initialValue, out string value)
+        {
+            value = "hello";
+            return true;
+        }
     }
 
     private sealed class TestFileDialogService : IFileDialogService
