@@ -363,7 +363,7 @@
                 Background="{StaticResource SidebarBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1"
-                Padding="14,8">
+                Padding="14,4">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -490,7 +490,7 @@
 
             <!-- Tunnels -->
             <TabItem>
-                <Grid Margin="14">
+                <Grid Margin="14,4">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
@@ -499,7 +499,7 @@
                     <Border Grid.Row="0"
                             Style="{StaticResource PanelCardStyle}"
                             Padding="12"
-                            Margin="0,0,0,2">
+                            Margin="0,0,0,4">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -645,8 +645,8 @@
                             </Border.Style>
                             <ScrollViewer VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Disabled">
-                                <StackPanel Margin="14">
-                                    <Grid Margin="0,0,0,2">
+                                <StackPanel Margin="14,4">
+                                    <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
@@ -659,7 +659,7 @@
                                             <TextBlock Text="{Binding SelectedTunnel.AddressDisplay}"
                                                        FontSize="11"
                                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                                       Margin="0,2,0,0"
+                                                       Margin="0,4,0,0"
                                                        TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
                                         <Border Grid.Column="1"
@@ -691,19 +691,19 @@
 
                                     <TextBlock Text="配置摘要"
                                                Style="{StaticResource SectionTitleStyle}"
-                                               Margin="0,0,0,2" />
+                                               Margin="0,0,0,4" />
                                     <TextBlock Text="DNS" Style="{StaticResource InfoLabelStyle}" />
                                     <TextBlock Text="{Binding SelectedTunnel.DnsDisplay}"
                                                Style="{StaticResource InfoValueStyle}"
-                                               Margin="0,0,0,2" />
+                                               Margin="0,0,0,4" />
                                     <TextBlock Text="对等端" Style="{StaticResource InfoLabelStyle}" />
                                     <TextBlock Text="{Binding SelectedTunnel.PeerCount}"
                                                Style="{StaticResource InfoValueStyle}"
-                                               Margin="0,0,0,2" />
+                                               Margin="0,0,0,4" />
                                     <TextBlock Text="端点" Style="{StaticResource InfoLabelStyle}" />
                                     <TextBlock Text="{Binding SelectedTunnel.EndpointDisplay}"
                                                Style="{StaticResource InfoValueStyle}"
-                                               Margin="0,0,0,2" />
+                                               Margin="0,0,0,4" />
                                     <TextBlock Text="配置文件" Style="{StaticResource InfoLabelStyle}" />
                                     <TextBlock Text="{Binding SelectedTunnel.ConfigPath}"
                                                Style="{StaticResource InfoValueStyle}" />
@@ -1028,7 +1028,7 @@
 
             <!-- Configuration -->
             <TabItem>
-                <Grid Margin="14">
+                <Grid Margin="14,4">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
@@ -1038,7 +1038,7 @@
                     <Border Grid.Row="0"
                             Style="{StaticResource PanelCardStyle}"
                             Padding="12"
-                            Margin="0,0,0,2">
+                            Margin="0,0,0,4">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Right"
                                         Orientation="Horizontal">
@@ -1062,7 +1062,7 @@
                                 <TextBlock Text="{Binding SelectedTunnel.Name, TargetNullValue='未选择隧道'}"
                                            FontSize="11"
                                            Foreground="{StaticResource TextSecondaryBrush}"
-                                           Margin="0,2,0,0" />
+                                           Margin="0,4,0,0" />
                             </StackPanel>
                         </DockPanel>
                     </Border>
@@ -1095,7 +1095,7 @@
 
             <!-- Receive -->
             <TabItem>
-                <Grid Margin="14">
+                <Grid Margin="14,4">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
@@ -1106,7 +1106,7 @@
                     <Border Grid.Row="0"
                             Style="{StaticResource PanelCardStyle}"
                             Padding="12"
-                            Margin="0,0,0,2">
+                            Margin="0,0,0,4">
                         <TextBlock Text="接收记录"
                                    FontSize="16"
                                    FontWeight="SemiBold"
@@ -1124,7 +1124,7 @@
                             <TextBlock Text="收到的文本"
                                        FontSize="14"
                                        FontWeight="SemiBold"
-                                       Margin="0,0,0,2" />
+                                       Margin="0,0,0,4" />
                             <DataGrid Grid.Row="1"
                                       ItemsSource="{Binding ReceivedTexts}"
                                       AutoGenerateColumns="False"
@@ -1172,7 +1172,7 @@
                             <TextBlock Text="收到的文件"
                                        FontSize="14"
                                        FontWeight="SemiBold"
-                                       Margin="0,0,0,2" />
+                                       Margin="0,0,0,4" />
                             <DataGrid Grid.Row="1"
                                       ItemsSource="{Binding ReceivedFiles}"
                                       AutoGenerateColumns="False"
@@ -1225,7 +1225,7 @@
             </TabItem>
             <!-- Activity log -->
             <TabItem>
-                <Grid Margin="14">
+                <Grid Margin="14,4">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
@@ -1234,7 +1234,7 @@
                     <Border Grid.Row="0"
                             Style="{StaticResource PanelCardStyle}"
                             Padding="12"
-                            Margin="0,0,0,2">
+                            Margin="0,0,0,4">
                         <DockPanel>
                             <Button DockPanel.Dock="Right"
                                     Content="清空"
@@ -1315,7 +1315,7 @@
             <TabItem>
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
-                    <Grid Margin="14">
+                    <Grid Margin="14,4">
                                      <Grid.RowDefinitions>
                                          <RowDefinition Height="Auto" />
                                          <RowDefinition Height="Auto" />
@@ -1333,7 +1333,7 @@
                                    Text="工具"
                                    FontSize="18"
                                    FontWeight="SemiBold"
-                                   Margin="0,0,0,2" />
+                                   Margin="0,0,0,4" />
 
                         <Border Grid.Row="1"
                                 Grid.Column="0"
@@ -1430,33 +1430,33 @@
                                                Text="运行时状态"
                                                Foreground="{StaticResource TextSecondaryBrush}"
                                                FontSize="12"
-                                               Margin="0,0,0,2" />
+                                               Margin="0,0,0,4" />
                                     <TextBlock Grid.Row="0" Grid.Column="1"
                                                Text="{Binding RuntimeStatus}"
                                                FontSize="12"
-                                               Margin="0,0,0,2"
+                                               Margin="0,0,0,4"
                                                TextWrapping="Wrap" />
 
                                      <TextBlock Grid.Row="1" Grid.Column="0"
                                                 Text="权限级别"
                                                 Foreground="{StaticResource TextSecondaryBrush}"
                                                 FontSize="12"
-                                                Margin="0,0,0,2" />
+                                                Margin="0,0,0,4" />
                                      <TextBlock Grid.Row="1" Grid.Column="1"
                                                 Text="{Binding PrivilegeStatus}"
                                                 FontSize="12"
-                                                Margin="0,0,0,2"
+                                                Margin="0,0,0,4"
                                                 TextWrapping="Wrap" />
 
                                      <TextBlock Grid.Row="2" Grid.Column="0"
                                                 Text="监听状态"
                                                 Foreground="{StaticResource TextSecondaryBrush}"
                                                 FontSize="12"
-                                                Margin="0,0,0,2" />
+                                                Margin="0,0,0,4" />
                                      <TextBlock Grid.Row="2" Grid.Column="1"
                                                 Text="{Binding InterconnectListenerStatus}"
                                                 FontSize="12"
-                                                Margin="0,0,0,2"
+                                                Margin="0,0,0,4"
                                                 TextWrapping="Wrap" />
 
                                      <TextBlock Grid.Row="3" Grid.Column="0"
