@@ -1,7 +1,10 @@
-using MyWireGuard.App.Services;
-using MyWireGuard.Core.Models;
 using System.Windows;
 using System.Windows.Threading;
+using System.IO;
+using MyWireGuard.App.Dialogs;
+using MyWireGuard.App.Services;
+using MyWireGuard.Core.Abstractions;
+using MyWireGuard.Core.Models;
 
 namespace MyWireGuard.App.ViewModels;
 
@@ -11,6 +14,8 @@ public sealed class NeighborHostItemViewModel : ObservableObject
     private readonly IMessageService messageService;
     private readonly ISystemInteractionService systemInteractionService;
     private readonly ITextInputDialogService textInputDialogService;
+    private readonly IInterconnectService interconnectService;
+    private readonly IFileDialogService fileDialogService;
     private readonly string metadataFilePath;
     private string ipAddress;
     private string remark;
@@ -20,6 +25,7 @@ public sealed class NeighborHostItemViewModel : ObservableObject
     private int? pingMs;
     private bool isRdpOpen;
     private bool isSshOpen;
+    private bool isInterconnectOpen;
     private DateTimeOffset? lastSeenAt;
     private DateTimeOffset? lastScannedAt;
     private bool suppressRemarkNotification;
@@ -30,13 +36,17 @@ public sealed class NeighborHostItemViewModel : ObservableObject
         Action<NeighborHostItemViewModel> onRemarkChanged,
         IMessageService messageService,
         ISystemInteractionService systemInteractionService,
-        ITextInputDialogService textInputDialogService)
+        ITextInputDialogService textInputDialogService,
+        IInterconnectService interconnectService,
+        IFileDialogService fileDialogService)
     {
         this.metadataFilePath = metadataFilePath;
         this.onRemarkChanged = onRemarkChanged;
         this.messageService = messageService;
         this.systemInteractionService = systemInteractionService;
         this.textInputDialogService = textInputDialogService;
+        this.interconnectService = interconnectService;
+        this.fileDialogService = fileDialogService;
         ipAddress = host.IpAddress;
         remark = host.Remark ?? string.Empty;
         remarkSource = host.RemarkSource;
@@ -45,6 +55,7 @@ public sealed class NeighborHostItemViewModel : ObservableObject
         pingMs = host.PingMs;
         isRdpOpen = host.IsRdpOpen;
         isSshOpen = host.IsSshOpen;
+        isInterconnectOpen = host.IsInterconnectOpen;
         lastSeenAt = host.LastSeenAt;
         lastScannedAt = host.LastScannedAt;
 
@@ -57,6 +68,8 @@ public sealed class NeighborHostItemViewModel : ObservableObject
         OpenContainingFolderCommand = new AsyncRelayCommand(OpenContainingFolderAsync, CanUseMetadataFile);
         RenameCommand = new AsyncRelayCommand(RenameAsync);
         DeleteCommand = new AsyncRelayCommand(DeleteAsync, () => !string.IsNullOrWhiteSpace(Remark));
+        SendTextCommand = new AsyncRelayCommand(SendTextAsync, () => HasInterconnectActions);
+        SendFileCommand = new AsyncRelayCommand(SendFileAsync, () => HasInterconnectActions);
     }
 
     public AsyncRelayCommand OpenRemoteDesktopCommand { get; }
@@ -76,6 +89,10 @@ public sealed class NeighborHostItemViewModel : ObservableObject
     public AsyncRelayCommand RenameCommand { get; }
 
     public AsyncRelayCommand DeleteCommand { get; }
+
+    public AsyncRelayCommand SendTextCommand { get; }
+
+    public AsyncRelayCommand SendFileCommand { get; }
 
     public string IpAddress
     {
@@ -203,6 +220,20 @@ public sealed class NeighborHostItemViewModel : ObservableObject
         }
     }
 
+    public bool IsInterconnectOpen
+    {
+        get => isInterconnectOpen;
+        private set
+        {
+            if (SetProperty(ref isInterconnectOpen, value))
+            {
+                RaisePropertyChanged(nameof(HasInterconnectActions));
+                SendTextCommand.NotifyCanExecuteChanged();
+                SendFileCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
     public DateTimeOffset? LastSeenAt
     {
         get => lastSeenAt;
@@ -257,6 +288,8 @@ public sealed class NeighborHostItemViewModel : ObservableObject
 
     public bool HasOpenPorts => IsRdpOpen || IsSshOpen;
 
+    public bool HasInterconnectActions => IsInterconnectOpen;
+
     public string LastSeenDisplay => LastSeenAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
 
     public string StatusDisplay => IsAlive ? "在线" : "离线";
@@ -291,6 +324,7 @@ public sealed class NeighborHostItemViewModel : ObservableObject
             PingMs = PingMs,
             IsRdpOpen = IsRdpOpen,
             IsSshOpen = IsSshOpen,
+            IsInterconnectOpen = IsInterconnectOpen,
             LastSeenAt = LastSeenAt,
             LastScannedAt = LastScannedAt
         };
@@ -313,6 +347,7 @@ public sealed class NeighborHostItemViewModel : ObservableObject
             PingMs = host.PingMs;
             IsRdpOpen = host.IsRdpOpen;
             IsSshOpen = host.IsSshOpen;
+            IsInterconnectOpen = host.IsInterconnectOpen;
             LastSeenAt = host.LastSeenAt;
             LastScannedAt = host.LastScannedAt;
             RaisePropertyChanged(nameof(DisplayName));
@@ -387,6 +422,83 @@ public sealed class NeighborHostItemViewModel : ObservableObject
 
         ShowDeleteConfirmation();
         return Task.CompletedTask;
+    }
+
+    private async Task SendTextAsync()
+    {
+        try
+        {
+            if (!textInputDialogService.TryShow("发送文本信息", $"发送到 {IpAddress}", string.Empty, out var text))
+            {
+                return;
+            }
+
+            var trimmed = text.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed))
+            {
+                return;
+            }
+
+            await interconnectService.SendTextAsync(IpAddress, InterconnectLimits.DefaultPort, trimmed, CancellationToken.None).ConfigureAwait(false);
+            messageService.ShowInfo("文本发送完成。", "互联");
+        }
+        catch (Exception exception)
+        {
+            messageService.ShowError(exception.Message, "发送文本失败");
+        }
+    }
+
+    private async Task SendFileAsync()
+    {
+        try
+        {
+            var filePath = fileDialogService.PickSendFilePath();
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return;
+            }
+
+            var fileInfo = new FileInfo(filePath);
+            if (!fileInfo.Exists)
+            {
+                throw new FileNotFoundException("发送文件不存在。", filePath);
+            }
+
+            if (fileInfo.Length > InterconnectLimits.MaxFileSizeBytes)
+            {
+                throw new InvalidOperationException("发送文件不能超过 500MB。");
+            }
+
+            var progressWindow = CreateProgressWindow(fileInfo.Name, fileInfo.Length);
+            var progress = new Progress<InterconnectSendProgress>(update =>
+            {
+                progressWindow.UpdateProgress(update.BytesTransferred, update.TotalBytes);
+            });
+
+            progressWindow.Show();
+            try
+            {
+                await interconnectService.SendFileAsync(IpAddress, InterconnectLimits.DefaultPort, filePath, progress, CancellationToken.None).ConfigureAwait(false);
+                progressWindow.Close();
+                messageService.ShowInfo("文件发送完成。", "互联");
+            }
+            catch
+            {
+                progressWindow.Close();
+                throw;
+            }
+        }
+        catch (Exception exception)
+        {
+            messageService.ShowError(exception.Message, "发送文件失败");
+        }
+    }
+
+    private FileSendProgressDialog CreateProgressWindow(string fileName, long totalBytes)
+    {
+        var owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive)
+            ?? Application.Current?.MainWindow;
+        return new FileSendProgressDialog(owner, IpAddress, fileName, totalBytes);
     }
 
     private void ShowRenameDialog()

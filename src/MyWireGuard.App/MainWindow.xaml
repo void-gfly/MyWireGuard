@@ -356,11 +356,16 @@
                     <RadioButton Style="{StaticResource TopNavItemStyle}"
                                  GroupName="MainNav"
                                  IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=2}">
-                        <TextBlock Text="活动日志" />
+                        <TextBlock Text="接收" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource TopNavItemStyle}"
                                  GroupName="MainNav"
                                  IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=3}">
+                        <TextBlock Text="活动日志" />
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource TopNavItemStyle}"
+                                 GroupName="MainNav"
+                                 IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsBoolConverter}, ConverterParameter=4}">
                         <TextBlock Text="工具" />
                     </RadioButton>
                 </StackPanel>
@@ -810,6 +815,13 @@
                                                                 <MenuItem Header="删除"
                                                                           Command="{Binding DeleteCommand}" />
                                                             </MenuItem>
+                                                            <MenuItem Header="互联"
+                                                                      IsEnabled="{Binding HasInterconnectActions}">
+                                                                <MenuItem Header="发送文本信息"
+                                                                          Command="{Binding SendTextCommand}" />
+                                                                <MenuItem Header="发送文件"
+                                                                          Command="{Binding SendFileCommand}" />
+                                                            </MenuItem>
                                                         </ContextMenu>
                                                     </Setter.Value>
                                                 </Setter>
@@ -1000,6 +1012,136 @@
                 </Grid>
             </TabItem>
 
+            <!-- Receive -->
+            <TabItem>
+                <Grid Margin="14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"
+                            Style="{StaticResource PanelCardStyle}"
+                            Padding="12"
+                            Margin="0,0,0,12">
+                        <TextBlock Text="接收记录"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </Border>
+
+                    <Border Grid.Row="1"
+                            Style="{StaticResource PanelCardStyle}"
+                            Padding="10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="收到的文本"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,10" />
+                            <DataGrid Grid.Row="1"
+                                      ItemsSource="{Binding ReceivedTexts}"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      HeadersVisibility="Column"
+                                      GridLinesVisibility="Horizontal"
+                                      RowHeight="36"
+                                      ColumnHeaderHeight="32">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Width="165"
+                                                        Header="时间"
+                                                        Binding="{Binding ReceivedAt}" />
+                                    <DataGridTextColumn Width="120"
+                                                        Header="来源 IP"
+                                                        Binding="{Binding SourceIpAddress}" />
+                                    <DataGridTextColumn Width="*"
+                                                        Header="文本内容"
+                                                        Binding="{Binding Text}" />
+                                    <DataGridTemplateColumn Width="88"
+                                                            Header="操作">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="复制文本"
+                                                        Command="{Binding CopyTextCommand}"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Padding="8,4" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="3"
+                            Style="{StaticResource PanelCardStyle}"
+                            Padding="10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="收到的文件"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,10" />
+                            <DataGrid Grid.Row="1"
+                                      ItemsSource="{Binding ReceivedFiles}"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      HeadersVisibility="Column"
+                                      GridLinesVisibility="Horizontal"
+                                      RowHeight="36"
+                                      ColumnHeaderHeight="32">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Width="165"
+                                                        Header="时间"
+                                                        Binding="{Binding ReceivedAt}" />
+                                    <DataGridTextColumn Width="110"
+                                                        Header="来源 IP"
+                                                        Binding="{Binding SourceIpAddress}" />
+                                    <DataGridTextColumn Width="160"
+                                                        Header="文件名"
+                                                        Binding="{Binding FileName}" />
+                                    <DataGridTextColumn Width="90"
+                                                        Header="大小"
+                                                        Binding="{Binding FileSizeDisplay}" />
+                                    <DataGridTextColumn Width="*"
+                                                        Header="保存路径"
+                                                        Binding="{Binding SavedPath}" />
+                                    <DataGridTemplateColumn Width="160"
+                                                            Header="操作">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button Content="复制路径"
+                                                            Command="{Binding CopyPathCommand}"
+                                                            Style="{StaticResource SecondaryButtonStyle}"
+                                                            Padding="8,4"
+                                                            Margin="0,0,8,0" />
+                                                    <Button Content="打开目录"
+                                                            Command="{Binding OpenFolderCommand}"
+                                                            Style="{StaticResource SecondaryButtonStyle}"
+                                                            Padding="8,4" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
             <!-- Activity log -->
             <TabItem>
                 <Grid Margin="14">
@@ -1037,17 +1179,32 @@
                                   GridLinesVisibility="Horizontal"
                                   RowHeight="36"
                                   ColumnHeaderHeight="32">
+                            <DataGrid.Resources>
+                                <Style x:Key="LogGridTextStyle"
+                                       TargetType="TextBlock"
+                                       BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                                <Style x:Key="LogGridCellStyle"
+                                       TargetType="DataGridCell"
+                                       BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                                </Style>
+                            </DataGrid.Resources>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Width="165"
                                                     Header="时间"
-                                                    Binding="{Binding Timestamp}" />
+                                                    Binding="{Binding Timestamp}"
+                                                    ElementStyle="{StaticResource LogGridTextStyle}"
+                                                    CellStyle="{StaticResource LogGridCellStyle}" />
                                 <DataGridTextColumn Width="68"
                                                     Header="级别"
-                                                    Binding="{Binding Level}">
+                                                    Binding="{Binding Level}"
+                                                    CellStyle="{StaticResource LogGridCellStyle}">
                                     <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock">
+                                        <Style TargetType="TextBlock"
+                                               BasedOn="{StaticResource LogGridTextStyle}">
                                             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
-                                            <Setter Property="VerticalAlignment" Value="Center" />
                                             <Style.Triggers>
                                                 <Trigger Property="Text" Value="Error">
                                                     <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
@@ -1064,7 +1221,9 @@
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Width="*"
                                                     Header="消息"
-                                                    Binding="{Binding Message}" />
+                                                    Binding="{Binding Message}"
+                                                    ElementStyle="{StaticResource LogGridTextStyle}"
+                                                    CellStyle="{StaticResource LogGridCellStyle}" />
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>

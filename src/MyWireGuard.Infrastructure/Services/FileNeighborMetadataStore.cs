@@ -127,6 +127,8 @@ public sealed class FileNeighborMetadataStore : INeighborMetadataStore
 
         public bool IsSshOpen { get; set; }
 
+        public bool IsInterconnectOpen { get; set; }
+
         public DateTimeOffset? LastSeenAt { get; set; }
 
         public DateTimeOffset? LastScannedAt { get; set; }
@@ -143,6 +145,7 @@ public sealed class FileNeighborMetadataStore : INeighborMetadataStore
                 PingMs = PingMs,
                 IsRdpOpen = IsRdpOpen,
                 IsSshOpen = IsSshOpen,
+                IsInterconnectOpen = IsInterconnectOpen,
                 LastSeenAt = LastSeenAt,
                 LastScannedAt = LastScannedAt
             };
@@ -160,6 +163,7 @@ public sealed class FileNeighborMetadataStore : INeighborMetadataStore
                 PingMs = host.PingMs,
                 IsRdpOpen = host.IsRdpOpen,
                 IsSshOpen = host.IsSshOpen,
+                IsInterconnectOpen = host.IsInterconnectOpen,
                 LastSeenAt = host.LastSeenAt,
                 LastScannedAt = host.LastScannedAt
             };

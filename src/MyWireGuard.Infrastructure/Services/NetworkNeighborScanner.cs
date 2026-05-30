@@ -180,6 +180,10 @@ public sealed class NetworkNeighborScanner : INetworkNeighborScanner
                 {
                     host.IsSshOpen = isOpen;
                 }
+                else if (port == InterconnectLimits.DefaultPort)
+                {
+                    host.IsInterconnectOpen = isOpen;
+                }
             }
 
             hostUpdateProgress?.Report(new NeighborHostUpdate
@@ -262,6 +266,7 @@ public sealed class NetworkNeighborScanner : INetworkNeighborScanner
                 PingMs = null,
                 IsRdpOpen = false,
                 IsSshOpen = false,
+                IsInterconnectOpen = false,
                 LastSeenAt = existingHost.LastSeenAt,
                 LastScannedAt = now
             });
@@ -316,6 +321,7 @@ public sealed class NetworkNeighborScanner : INetworkNeighborScanner
             PingMs = host.PingMs,
             IsRdpOpen = host.IsRdpOpen,
             IsSshOpen = host.IsSshOpen,
+            IsInterconnectOpen = host.IsInterconnectOpen,
             LastSeenAt = host.LastSeenAt,
             LastScannedAt = host.LastScannedAt
         };

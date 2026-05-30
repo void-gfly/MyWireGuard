@@ -130,7 +130,8 @@ public sealed class NeighborInfrastructureTests
                 {
                     IpAddress = "172.16.0.10",
                     Hostname = "new-host",
-                    IsAlive = true
+                    IsAlive = true,
+                    IsInterconnectOpen = true
                 },
                 new NeighborHost
                 {
@@ -146,6 +147,7 @@ public sealed class NeighborInfrastructureTests
         Assert.Equal(2, merged.Hosts.Count);
         Assert.Equal("custom-name", merged.Hosts[0].Remark);
         Assert.Equal(NeighborRemarkSource.None, merged.Hosts[0].RemarkSource);
+        Assert.True(merged.Hosts[0].IsInterconnectOpen);
         Assert.Equal("auto-name", merged.Hosts[1].Remark);
         Assert.Equal(NeighborRemarkSource.AutoDiscovered, merged.Hosts[1].RemarkSource);
     }

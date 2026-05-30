@@ -26,4 +26,15 @@ public sealed class FileDialogService : IFileDialogService
 
         return dialog.ShowDialog() == true ? dialog.FileName : null;
     }
+
+    public string? PickSendFilePath()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "选择要发送的文件",
+            Filter = "所有文件 (*.*)|*.*"
+        };
+
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
 }

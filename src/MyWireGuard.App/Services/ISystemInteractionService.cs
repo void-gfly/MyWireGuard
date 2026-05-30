@@ -13,4 +13,6 @@ public interface ISystemInteractionService
     void OpenFile(string path);
 
     void OpenContainingFolder(string path);
+
+    void OpenFolder(string path);
 }

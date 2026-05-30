@@ -55,6 +55,21 @@ public sealed class SystemInteractionService : ISystemInteractionService
         StartProcess("explorer.exe", $"/select,\"{path}\"");
     }
 
+    public void OpenFolder(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new InvalidOperationException("目标目录路径为空。");
+        }
+
+        if (!Directory.Exists(path))
+        {
+            throw new DirectoryNotFoundException($"目标目录不存在: {path}");
+        }
+
+        StartProcess("explorer.exe", $"\"{path}\"");
+    }
+
     private static void EnsureFileExists(string path)
     {
         if (string.IsNullOrWhiteSpace(path))

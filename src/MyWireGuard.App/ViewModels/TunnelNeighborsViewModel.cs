@@ -17,6 +17,8 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
     private readonly IMessageService messageService;
     private readonly ISystemInteractionService systemInteractionService;
     private readonly ITextInputDialogService textInputDialogService;
+    private readonly IInterconnectService interconnectService;
+    private readonly IFileDialogService fileDialogService;
     private readonly Dictionary<string, NeighborHostItemViewModel> hostIndex = new(StringComparer.OrdinalIgnoreCase);
     private readonly object scanSessionLock = new();
     private TunnelProfile? currentProfile;
@@ -39,7 +41,9 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
         ILogService logService,
         IMessageService messageService,
         ISystemInteractionService systemInteractionService,
-        ITextInputDialogService textInputDialogService)
+        ITextInputDialogService textInputDialogService,
+        IInterconnectService interconnectService,
+        IFileDialogService fileDialogService)
     {
         this.metadataStore = metadataStore;
         this.scanner = scanner;
@@ -48,6 +52,8 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
         this.messageService = messageService;
         this.systemInteractionService = systemInteractionService;
         this.textInputDialogService = textInputDialogService;
+        this.interconnectService = interconnectService;
+        this.fileDialogService = fileDialogService;
 
         ScanCommand = new AsyncRelayCommand(ScanAsync, CanScan);
         CancelScanCommand = new AsyncRelayCommand(CancelScanAsync, () => IsScanning);
@@ -425,7 +431,7 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var item = new NeighborHostItemViewModel(host, sourceMetadataFilePath, OnRemarkChanged, messageService, systemInteractionService, textInputDialogService);
+        var item = new NeighborHostItemViewModel(host, sourceMetadataFilePath, OnRemarkChanged, messageService, systemInteractionService, textInputDialogService, interconnectService, fileDialogService);
         hostIndex[host.IpAddress] = item;
         Hosts.Add(item);
         SortHosts();
@@ -437,7 +443,7 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
         hostIndex.Clear();
         foreach (var host in hosts.OrderBy(host => IPAddress.Parse(host.IpAddress), new IpAddressComparer()))
         {
-            var item = new NeighborHostItemViewModel(host, metadataFilePath, OnRemarkChanged, messageService, systemInteractionService, textInputDialogService);
+            var item = new NeighborHostItemViewModel(host, metadataFilePath, OnRemarkChanged, messageService, systemInteractionService, textInputDialogService, interconnectService, fileDialogService);
             hostIndex[host.IpAddress] = item;
             Hosts.Add(item);
         }
@@ -572,6 +578,7 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
                     PingMs = existingHost.PingMs,
                     IsRdpOpen = existingHost.IsRdpOpen,
                     IsSshOpen = existingHost.IsSshOpen,
+                    IsInterconnectOpen = existingHost.IsInterconnectOpen,
                     LastSeenAt = existingHost.LastSeenAt,
                     LastScannedAt = existingHost.LastScannedAt
                 });

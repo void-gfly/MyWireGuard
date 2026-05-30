@@ -9,7 +9,7 @@ namespace MyWireGuard.Tests;
 
 public sealed class TunnelNeighborsViewModelTests
 {
-    private static readonly Lazy<Dispatcher> StaDispatcher = new(StartStaDispatcher);
+    private static readonly Lazy<Dispatcher> StaDispatcher = new(() => WpfTestHost.Dispatcher);
 
     [Fact]
     public void LoadTunnelAsync_ShouldNotAutoScanWhenMetadataHasCompletedScan()
@@ -41,7 +41,9 @@ public sealed class TunnelNeighborsViewModelTests
                 new TestLogService(),
                 new TestMessageService(),
                 new TestSystemInteractionService(),
-                new TestTextInputDialogService());
+                new TestTextInputDialogService(),
+                new TestInterconnectService(),
+                new TestFileDialogService());
 
             try
             {
@@ -74,7 +76,9 @@ public sealed class TunnelNeighborsViewModelTests
                 new TestLogService(),
                 new TestMessageService(),
                 new TestSystemInteractionService(),
-                new TestTextInputDialogService());
+                new TestTextInputDialogService(),
+                new TestInterconnectService(),
+                new TestFileDialogService());
 
             var firstTunnel = CreateProfile("first", "10.10.0.2/30");
             var secondTunnel = CreateProfile("second", "10.20.0.2/30");
@@ -147,26 +151,6 @@ public sealed class TunnelNeighborsViewModelTests
         {
             throw exception;
         }
-    }
-
-    private static Dispatcher StartStaDispatcher()
-    {
-        var dispatcherSource = new TaskCompletionSource<Dispatcher>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var thread = new Thread(() =>
-        {
-            var dispatcher = Dispatcher.CurrentDispatcher;
-            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(dispatcher));
-            _ = new Application();
-            dispatcherSource.SetResult(dispatcher);
-            Dispatcher.Run();
-        })
-        {
-            IsBackground = true
-        };
-
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        return dispatcherSource.Task.GetAwaiter().GetResult();
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition)
@@ -370,6 +354,10 @@ public sealed class TunnelNeighborsViewModelTests
         public void OpenContainingFolder(string path)
         {
         }
+
+        public void OpenFolder(string path)
+        {
+        }
     }
 
     private sealed class TestTextInputDialogService : ITextInputDialogService
@@ -379,5 +367,40 @@ public sealed class TunnelNeighborsViewModelTests
             value = initialValue;
             return true;
         }
+    }
+
+    private sealed class TestInterconnectService : IInterconnectService
+    {
+        public event EventHandler<InterconnectReceiveTextRecord>? TextReceived
+        {
+            add { }
+            remove { }
+        }
+
+        public event EventHandler<InterconnectReceiveFileRecord>? FileReceived
+        {
+            add { }
+            remove { }
+        }
+
+        public event EventHandler<InterconnectSendProgress>? SendProgressChanged
+        {
+            add { }
+            remove { }
+        }
+        public IReadOnlyList<InterconnectReceiveTextRecord> GetReceivedTextRecords() => [];
+        public IReadOnlyList<InterconnectReceiveFileRecord> GetReceivedFileRecords() => [];
+        public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task SendTextAsync(string ipAddress, int port, string text, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task SendFileAsync(string ipAddress, int port, string filePath, IProgress<InterconnectSendProgress>? progress, CancellationToken cancellationToken) => Task.CompletedTask;
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class TestFileDialogService : IFileDialogService
+    {
+        public string? PickImportPath() => null;
+        public string? PickExportPath(string tunnelName) => null;
+        public string? PickSendFilePath() => null;
     }
 }

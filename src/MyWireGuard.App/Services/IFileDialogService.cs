@@ -5,4 +5,6 @@ public interface IFileDialogService
     string? PickImportPath();
 
     string? PickExportPath(string tunnelName);
+
+    string? PickSendFilePath();
 }

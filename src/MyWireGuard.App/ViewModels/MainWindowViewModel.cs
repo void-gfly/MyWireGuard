@@ -17,6 +17,8 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly IPrivilegeService privilegeService;
     private readonly IFileDialogService fileDialogService;
     private readonly IMessageService messageService;
+    private readonly IInterconnectService interconnectService;
+    private readonly ISystemInteractionService systemInteractionService;
     private readonly TunnelNeighborsViewModel tunnelNeighbors;
     private readonly DispatcherTimer statusRefreshTimer;
 
@@ -37,7 +39,9 @@ public sealed class MainWindowViewModel : ObservableObject
         IPrivilegeService privilegeService,
         TunnelNeighborsViewModel tunnelNeighbors,
         IFileDialogService fileDialogService,
-        IMessageService messageService)
+        IMessageService messageService,
+        IInterconnectService interconnectService,
+        ISystemInteractionService systemInteractionService)
     {
         this.configStore = configStore;
         this.tunnelServiceManager = tunnelServiceManager;
@@ -47,6 +51,8 @@ public sealed class MainWindowViewModel : ObservableObject
         this.tunnelNeighbors = tunnelNeighbors;
         this.fileDialogService = fileDialogService;
         this.messageService = messageService;
+        this.interconnectService = interconnectService;
+        this.systemInteractionService = systemInteractionService;
         statusRefreshTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(1)
@@ -84,12 +90,28 @@ public sealed class MainWindowViewModel : ObservableObject
             LogEntries.Add(entry);
         }
 
+        foreach (var record in interconnectService.GetReceivedTextRecords())
+        {
+            ReceivedTexts.Add(new InterconnectReceiveTextItemViewModel(record, systemInteractionService));
+        }
+
+        foreach (var record in interconnectService.GetReceivedFileRecords())
+        {
+            ReceivedFiles.Add(new InterconnectReceiveFileItemViewModel(record, systemInteractionService));
+        }
+
         logService.EntryWritten += OnEntryWritten;
+        interconnectService.TextReceived += OnInterconnectTextReceived;
+        interconnectService.FileReceived += OnInterconnectFileReceived;
     }
 
     public ObservableCollection<TunnelItemViewModel> Tunnels { get; } = [];
 
     public ObservableCollection<LogEntry> LogEntries { get; } = [];
+
+    public ObservableCollection<InterconnectReceiveTextItemViewModel> ReceivedTexts { get; } = [];
+
+    public ObservableCollection<InterconnectReceiveFileItemViewModel> ReceivedFiles { get; } = [];
 
     public TunnelNeighborsViewModel TunnelNeighbors => tunnelNeighbors;
 
@@ -546,7 +568,33 @@ public sealed class MainWindowViewModel : ObservableObject
         statusRefreshTimer.Stop();
         statusRefreshTimer.Tick -= OnStatusRefreshTimerTick;
         logService.EntryWritten -= OnEntryWritten;
+        interconnectService.TextReceived -= OnInterconnectTextReceived;
+        interconnectService.FileReceived -= OnInterconnectFileReceived;
         tunnelNeighbors.Dispose();
+    }
+
+    private void OnInterconnectTextReceived(object? sender, InterconnectReceiveTextRecord record)
+    {
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            ReceivedTexts.Insert(0, new InterconnectReceiveTextItemViewModel(record, systemInteractionService));
+            while (ReceivedTexts.Count > 200)
+            {
+                ReceivedTexts.RemoveAt(ReceivedTexts.Count - 1);
+            }
+        });
+    }
+
+    private void OnInterconnectFileReceived(object? sender, InterconnectReceiveFileRecord record)
+    {
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            ReceivedFiles.Insert(0, new InterconnectReceiveFileItemViewModel(record, systemInteractionService));
+            while (ReceivedFiles.Count > 200)
+            {
+                ReceivedFiles.RemoveAt(ReceivedFiles.Count - 1);
+            }
+        });
     }
 
     public async Task<ExitConfirmationResult> ConfirmExitAsync()

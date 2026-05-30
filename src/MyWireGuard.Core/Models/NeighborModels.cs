@@ -34,6 +34,8 @@ public sealed class NeighborHost
 
     public bool IsSshOpen { get; set; }
 
+    public bool IsInterconnectOpen { get; set; }
+
     public DateTimeOffset? LastSeenAt { get; set; }
 
     public DateTimeOffset? LastScannedAt { get; set; }
@@ -86,7 +88,7 @@ public sealed class NeighborScanOptions
 
     public int HostnameConcurrency { get; set; } = 8;
 
-    public int[] Ports { get; set; } = [3389, 22];
+    public int[] Ports { get; set; } = [3389, 22, InterconnectLimits.DefaultPort];
 }
 
 public sealed class NeighborScanResult

@@ -1,6 +1,9 @@
 ﻿using System.Windows;
 using MyWireGuard.App.Services;
+using System.IO;
 using MyWireGuard.App.ViewModels;
+using MyWireGuard.Core.Abstractions;
+using MyWireGuard.Core.Models;
 using MyWireGuard.Infrastructure.Config;
 using MyWireGuard.Infrastructure.Interop;
 using MyWireGuard.Infrastructure.Logging;
@@ -12,6 +15,7 @@ namespace MyWireGuard.App;
 public partial class App : System.Windows.Application
 {
 	private SingleInstanceCoordinator? singleInstanceCoordinator;
+    private IInterconnectService? interconnectService;
 	private bool pendingShowMainWindowRequest;
 
 	protected override void OnStartup(StartupEventArgs e)
@@ -60,6 +64,11 @@ public partial class App : System.Windows.Application
 		var systemInteractionService = new SystemInteractionService();
 		var textInputDialogService = new TextInputDialogService();
 		var messageService = new MessageService();
+        interconnectService = new InterconnectService(
+            logService,
+            Path.Combine(AppContext.BaseDirectory, "Data", "RecvFile"),
+            InterconnectLimits.DefaultPort);
+        interconnectService.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
 		var tunnelNeighbors = new TunnelNeighborsViewModel(
 			neighborMetadataStore,
 			new NetworkNeighborScanner(subnetCalculator, logService),
@@ -67,7 +76,9 @@ public partial class App : System.Windows.Application
 			logService,
 			messageService,
 			systemInteractionService,
-			textInputDialogService);
+			textInputDialogService,
+            interconnectService,
+            new FileDialogService());
 		var fileDialogService = new FileDialogService();
 
 		var mainWindowViewModel = new MainWindowViewModel(
@@ -78,7 +89,9 @@ public partial class App : System.Windows.Application
 			privilegeService,
 			tunnelNeighbors,
 			fileDialogService,
-			messageService);
+			messageService,
+            interconnectService,
+            systemInteractionService);
 
 		var mainWindow = new MainWindow(mainWindowViewModel);
 		MainWindow = mainWindow;
@@ -125,6 +138,8 @@ public partial class App : System.Windows.Application
 
 	protected override void OnExit(ExitEventArgs e)
 	{
+        interconnectService?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        interconnectService = null;
 		singleInstanceCoordinator?.Dispose();
 		singleInstanceCoordinator = null;
 		base.OnExit(e);
