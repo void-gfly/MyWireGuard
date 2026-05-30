@@ -4,6 +4,7 @@ using System.IO.Pipelines;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 using MyWireGuard.Core.Abstractions;
 using MyWireGuard.Core.Models;
 
@@ -13,6 +14,7 @@ public sealed class InterconnectService : IInterconnectService
 {
     private const byte TextMessageType = 1;
     private const byte FileMessageType = 2;
+    private const byte LocalInfoRequestMessageType = 3;
     private static readonly Encoding Utf8 = new UTF8Encoding(false, true);
 
     private readonly ILogService logService;
@@ -253,11 +255,12 @@ public sealed class InterconnectService : IInterconnectService
     {
         using var _ = client;
         var remoteIpAddress = ((IPEndPoint?)client.Client.RemoteEndPoint)?.Address.ToString() ?? string.Empty;
+        PipeReader? reader = null;
 
         try
         {
             await using var stream = client.GetStream();
-            var reader = PipeReader.Create(stream);
+            reader = PipeReader.Create(stream);
             var messageType = await ReadByteAsync(reader, cancellationToken).ConfigureAwait(false);
             switch (messageType)
             {
@@ -267,6 +270,9 @@ public sealed class InterconnectService : IInterconnectService
                 case FileMessageType:
                     await ReceiveFileAsync(reader, remoteIpAddress, cancellationToken).ConfigureAwait(false);
                     break;
+                case LocalInfoRequestMessageType:
+                    await SendLocalInfoAsync(stream, cancellationToken).ConfigureAwait(false);
+                    break;
                 default:
                     throw new InvalidOperationException($"收到未知互联消息类型: {messageType}。");
             }
@@ -275,11 +281,23 @@ public sealed class InterconnectService : IInterconnectService
         {
             logService.WriteError($"Interconnect handle failed: {exception.Message}");
         }
+        finally
+        {
+            if (reader is not null)
+            {
+                await reader.CompleteAsync().ConfigureAwait(false);
+            }
+        }
     }
 
     private async Task ReceiveTextAsync(PipeReader reader, string sourceIpAddress, CancellationToken cancellationToken)
     {
         var payloadLength = await ReadInt32Async(reader, cancellationToken).ConfigureAwait(false);
+        if (payloadLength <= 0 || payloadLength > InterconnectLimits.MaxTextMessageBytes)
+        {
+            throw new InvalidOperationException($"接收文本长度无效: {payloadLength}。");
+        }
+
         var payload = await ReadBytesAsync(reader, payloadLength, cancellationToken).ConfigureAwait(false);
         var text = Utf8.GetString(payload);
         var record = new InterconnectReceiveTextRecord(DateTimeOffset.Now, sourceIpAddress, text);
@@ -288,11 +306,33 @@ public sealed class InterconnectService : IInterconnectService
         logService.WriteInfo($"Interconnect text received from {sourceIpAddress}.");
     }
 
+    private static async Task SendLocalInfoAsync(NetworkStream stream, CancellationToken cancellationToken)
+    {
+        var payload = JsonSerializer.SerializeToUtf8Bytes(
+            LocalNetworkInfoProvider.GetLocalInfo(),
+            InterconnectJson.Options);
+        var lengthPrefix = new byte[sizeof(int)];
+        BinaryPrimitives.WriteInt32LittleEndian(lengthPrefix, payload.Length);
+        await stream.WriteAsync(lengthPrefix, cancellationToken).ConfigureAwait(false);
+        await stream.WriteAsync(payload, cancellationToken).ConfigureAwait(false);
+        await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task ReceiveFileAsync(PipeReader reader, string sourceIpAddress, CancellationToken cancellationToken)
     {
         var fileNameLength = await ReadInt32Async(reader, cancellationToken).ConfigureAwait(false);
+        if (fileNameLength <= 0 || fileNameLength > InterconnectLimits.MaxFileNameBytes)
+        {
+            throw new InvalidOperationException($"接收文件名长度无效: {fileNameLength}。");
+        }
+
         var fileName = Utf8.GetString(await ReadBytesAsync(reader, fileNameLength, cancellationToken).ConfigureAwait(false));
         var fileLength = await ReadInt64Async(reader, cancellationToken).ConfigureAwait(false);
+        if (fileLength < 0)
+        {
+            throw new InvalidOperationException($"接收文件大小无效: {fileLength}。");
+        }
+
         if (fileLength > InterconnectLimits.MaxFileSizeBytes)
         {
             throw new InvalidOperationException($"接收文件超过 500MB 限制: {fileName}。");
@@ -390,6 +430,16 @@ public sealed class InterconnectService : IInterconnectService
 
     private static async Task<byte[]> ReadBytesAsync(PipeReader reader, int length, CancellationToken cancellationToken)
     {
+        if (length < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), length, "读取长度不能为负数。");
+        }
+
+        if (length == 0)
+        {
+            return Array.Empty<byte>();
+        }
+
         var resultBuffer = new byte[length];
         var written = 0;
 

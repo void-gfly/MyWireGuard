@@ -11,11 +11,19 @@ public sealed class NetworkNeighborScanner : INetworkNeighborScanner
 {
     private readonly IIPv4SubnetCalculator subnetCalculator;
     private readonly ILogService logService;
+    private readonly IInterconnectLocalInfoClient localInfoClient;
+    private readonly Func<string, CancellationToken, Task<string?>> hostnameResolver;
 
-    public NetworkNeighborScanner(IIPv4SubnetCalculator subnetCalculator, ILogService logService)
+    public NetworkNeighborScanner(
+        IIPv4SubnetCalculator subnetCalculator,
+        ILogService logService,
+        IInterconnectLocalInfoClient? localInfoClient = null,
+        Func<string, CancellationToken, Task<string?>>? hostnameResolver = null)
     {
         this.subnetCalculator = subnetCalculator;
         this.logService = logService;
+        this.localInfoClient = localInfoClient ?? new InterconnectLocalInfoClient();
+        this.hostnameResolver = hostnameResolver ?? ResolveHostnameAsync;
     }
 
     public async Task<NeighborScanResult> ScanAsync(
@@ -221,7 +229,19 @@ public sealed class NetworkNeighborScanner : INetworkNeighborScanner
             MaxDegreeOfParallelism = options.HostnameConcurrency
         }, async (host, ct) =>
         {
-            host.Hostname = await ResolveHostnameAsync(host.IpAddress, ct).ConfigureAwait(false);
+            var localInfo = await localInfoClient
+                .TryGetLocalInfoAsync(host.IpAddress, InterconnectLimits.DefaultPort, options.PortTimeoutMs, ct)
+                .ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(localInfo?.ComputerName))
+            {
+                host.Hostname = localInfo.ComputerName;
+                host.IsInterconnectOpen = true;
+            }
+            else
+            {
+                host.Hostname = await hostnameResolver(host.IpAddress, ct).ConfigureAwait(false);
+            }
+
             hostUpdateProgress?.Report(new NeighborHostUpdate
             {
                 Phase = NeighborScanPhase.Hostnames,

@@ -1,6 +1,8 @@
+using MyWireGuard.Core.Abstractions;
 using MyWireGuard.Core.Models;
 using MyWireGuard.Infrastructure.Config;
 using MyWireGuard.Infrastructure.Services;
+using System.Net.NetworkInformation;
 
 namespace MyWireGuard.Tests;
 
@@ -152,9 +154,99 @@ public sealed class NeighborInfrastructureTests
         Assert.Equal(NeighborRemarkSource.AutoDiscovered, merged.Hosts[1].RemarkSource);
     }
 
+    [Fact]
+    public void GetLanIpAddresses_ShouldReturnOnlyPhysicalLanIpv4Addresses()
+    {
+        var interfaces = new[]
+        {
+            new LocalNetworkInterfaceSnapshot(NetworkInterfaceType.Ethernet, OperationalStatus.Up, ["192.168.0.24", "169.254.1.2"]),
+            new LocalNetworkInterfaceSnapshot(NetworkInterfaceType.Wireless80211, OperationalStatus.Up, ["10.0.0.5", "127.0.0.1"]),
+            new LocalNetworkInterfaceSnapshot(NetworkInterfaceType.Tunnel, OperationalStatus.Up, ["172.16.0.3"]),
+            new LocalNetworkInterfaceSnapshot(NetworkInterfaceType.Ethernet, OperationalStatus.Down, ["192.168.0.25"]),
+            new LocalNetworkInterfaceSnapshot(NetworkInterfaceType.GigabitEthernet, OperationalStatus.Up, ["192.168.0.24", "0.0.0.0"])
+        };
+
+        var addresses = LocalNetworkInfoProvider.GetLanIpAddresses(interfaces);
+
+        Assert.Equal(["10.0.0.5", "192.168.0.24"], addresses);
+    }
+
+    [Fact]
+    public async Task ScanAsync_ShouldPreferInterconnectLocalInfoComputerName()
+    {
+        var scanner = new NetworkNeighborScanner(
+            new SingleHostSubnetCalculator(),
+            new TestLogService(),
+            new StubLocalInfoClient(new InterconnectLocalInfo("peer-pc", ["192.168.0.20"])),
+            (_, _) => Task.FromResult<string?>("dns-name"));
+        var profile = new TunnelProfile { Name = "demo" };
+
+        var result = await scanner.ScanAsync(profile, new NeighborMetadata { TunnelName = "demo" });
+
+        var host = Assert.Single(result.Hosts);
+        Assert.Equal("peer-pc", host.Hostname);
+        Assert.Equal("peer-pc", host.Remark);
+        Assert.True(host.IsInterconnectOpen);
+    }
+
+    [Fact]
+    public async Task ScanAsync_ShouldFallbackToDnsWhenInterconnectLocalInfoUnavailable()
+    {
+        var scanner = new NetworkNeighborScanner(
+            new SingleHostSubnetCalculator(),
+            new TestLogService(),
+            new StubLocalInfoClient(null),
+            (_, _) => Task.FromResult<string?>("dns-name"));
+        var profile = new TunnelProfile { Name = "demo" };
+
+        var result = await scanner.ScanAsync(profile, new NeighborMetadata { TunnelName = "demo" });
+
+        var host = Assert.Single(result.Hosts);
+        Assert.Equal("dns-name", host.Hostname);
+    }
+
     private static AppRuntimePaths CreateRuntimePaths(string rootPath)
     {
         Environment.SetEnvironmentVariable("LOCALAPPDATA", rootPath);
         return new AppRuntimePaths();
+    }
+
+    private sealed class SingleHostSubnetCalculator : IIPv4SubnetCalculator
+    {
+        public bool TryGetPrimarySubnet(TunnelProfile profile, out string subnetCidr)
+        {
+            subnetCidr = "127.0.0.0/32";
+            return true;
+        }
+
+        public IReadOnlyList<string> EnumerateHostAddresses(string subnetCidr) => ["127.0.0.1"];
+    }
+
+    private sealed class StubLocalInfoClient : IInterconnectLocalInfoClient
+    {
+        private readonly InterconnectLocalInfo? localInfo;
+
+        public StubLocalInfoClient(InterconnectLocalInfo? localInfo)
+        {
+            this.localInfo = localInfo;
+        }
+
+        public Task<InterconnectLocalInfo?> TryGetLocalInfoAsync(string ipAddress, int port, int timeoutMs, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(localInfo);
+        }
+    }
+
+    private sealed class TestLogService : ILogService
+    {
+        public event EventHandler<LogEntry>? EntryWritten
+        {
+            add { }
+            remove { }
+        }
+
+        public IReadOnlyList<LogEntry> GetEntries() => [];
+        public void WriteInfo(string message) { }
+        public void WriteError(string message) { }
     }
 }
