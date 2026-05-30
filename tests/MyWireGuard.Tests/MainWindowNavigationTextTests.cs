@@ -23,6 +23,17 @@ public sealed class MainWindowNavigationTextTests
         Assert.Contains("CellStyle=\"{StaticResource LogGridCellStyle}\"", xaml);
     }
 
+    [Fact]
+    public void SystemInfoPanel_ShouldContainInterconnectStatusAndPortBindings()
+    {
+        var xaml = ReadMainWindowXaml();
+
+        Assert.Contains("Text=\"监听状态\"", xaml);
+        Assert.Contains("Text=\"监听端口\"", xaml);
+        Assert.Contains("Text=\"{Binding InterconnectListenerStatus}\"", xaml);
+        Assert.Contains("Text=\"{Binding InterconnectListenerPort}\"", xaml);
+    }
+
     private static string ReadMainWindowXaml()
     {
         var xamlPath = Path.GetFullPath(Path.Combine(

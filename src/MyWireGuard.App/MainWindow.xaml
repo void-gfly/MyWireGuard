@@ -1235,10 +1235,12 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
                     <Grid Margin="14">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
+                                     <Grid.RowDefinitions>
+                                         <RowDefinition Height="Auto" />
+                                         <RowDefinition Height="Auto" />
+                                         <RowDefinition Height="Auto" />
+                                         <RowDefinition Height="Auto" />
+                                     </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" MinWidth="420" />
                             <ColumnDefinition Width="12" />
@@ -1352,17 +1354,39 @@
                                                Margin="0,0,0,10"
                                                TextWrapping="Wrap" />
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0"
-                                               Text="权限级别"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               FontSize="12" />
-                                    <TextBlock Grid.Row="1" Grid.Column="1"
-                                               Text="{Binding PrivilegeStatus}"
-                                               FontSize="12"
-                                               TextWrapping="Wrap" />
-                                </Grid>
-                            </StackPanel>
-                        </Border>
+                                     <TextBlock Grid.Row="1" Grid.Column="0"
+                                                Text="权限级别"
+                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                FontSize="12"
+                                                Margin="0,0,0,10" />
+                                     <TextBlock Grid.Row="1" Grid.Column="1"
+                                                Text="{Binding PrivilegeStatus}"
+                                                FontSize="12"
+                                                Margin="0,0,0,10"
+                                                TextWrapping="Wrap" />
+
+                                     <TextBlock Grid.Row="2" Grid.Column="0"
+                                                Text="监听状态"
+                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                FontSize="12"
+                                                Margin="0,0,0,10" />
+                                     <TextBlock Grid.Row="2" Grid.Column="1"
+                                                Text="{Binding InterconnectListenerStatus}"
+                                                FontSize="12"
+                                                Margin="0,0,0,10"
+                                                TextWrapping="Wrap" />
+
+                                     <TextBlock Grid.Row="3" Grid.Column="0"
+                                                Text="监听端口"
+                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                FontSize="12" />
+                                     <TextBlock Grid.Row="3" Grid.Column="1"
+                                                Text="{Binding InterconnectListenerPort}"
+                                                FontSize="12"
+                                                TextWrapping="Wrap" />
+                                 </Grid>
+                             </StackPanel>
+                         </Border>
                     </Grid>
                 </ScrollViewer>
             </TabItem>

@@ -59,6 +59,58 @@ public sealed class MainWindowViewModelInterconnectTests
         });
     }
 
+    [Fact]
+    public void InterconnectListenerState_ShouldFlowIntoMainWindowViewModel()
+    {
+        RunOnStaThread(async () =>
+        {
+            EnsureApplication();
+
+            var interconnectService = new FakeInterconnectService
+            {
+                ListenerStatusText = "监听中",
+                ListenerPort = 7727
+            };
+            var viewModel = new MainWindowViewModel(
+                new FakeConfigStore(),
+                new FakeTunnelServiceManager(),
+                new FakeKeypairService(),
+                new TestLogService(),
+                new FakePrivilegeService(),
+                new TunnelNeighborsViewModel(
+                    new FakeNeighborMetadataStore(),
+                    new FakeScanner(),
+                    new FakeSubnetCalculator(),
+                    new TestLogService(),
+                    new TestMessageService(),
+                    new TestSystemInteractionService(),
+                    new TestTextInputDialogService(),
+                    interconnectService,
+                    new FakeFileDialogService()),
+                new FakeFileDialogService(),
+                new TestMessageService(),
+                interconnectService,
+                new TestSystemInteractionService());
+
+            try
+            {
+                Assert.Equal("监听中", viewModel.InterconnectListenerStatus);
+                Assert.Equal("7727", viewModel.InterconnectListenerPort);
+
+                interconnectService.UpdateListenerState("已停止", 0);
+                await PumpDispatcherAsync();
+
+                Assert.Equal("已停止", viewModel.InterconnectListenerStatus);
+                Assert.Equal("-", viewModel.InterconnectListenerPort);
+            }
+            finally
+            {
+                viewModel.Shutdown();
+                await interconnectService.DisposeAsync();
+            }
+        });
+    }
+
     private static void EnsureApplication()
     {
         if (Application.Current is null)
@@ -110,6 +162,10 @@ public sealed class MainWindowViewModelInterconnectTests
         private readonly List<InterconnectReceiveTextRecord> textRecords = [];
         private readonly List<InterconnectReceiveFileRecord> fileRecords = [];
 
+        public string ListenerStatusText { get; set; } = "已停止";
+        public int ListenerPort { get; set; }
+
+        public event EventHandler? ListenerStateChanged;
         public event EventHandler<InterconnectReceiveTextRecord>? TextReceived;
         public event EventHandler<InterconnectReceiveFileRecord>? FileReceived;
         public event EventHandler<InterconnectSendProgress>? SendProgressChanged
@@ -136,6 +192,13 @@ public sealed class MainWindowViewModelInterconnectTests
         {
             fileRecords.Add(record);
             FileReceived?.Invoke(this, record);
+        }
+
+        public void UpdateListenerState(string statusText, int port)
+        {
+            ListenerStatusText = statusText;
+            ListenerPort = port;
+            ListenerStateChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 

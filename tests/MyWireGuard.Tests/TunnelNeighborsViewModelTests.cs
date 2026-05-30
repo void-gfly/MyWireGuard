@@ -371,6 +371,13 @@ public sealed class TunnelNeighborsViewModelTests
 
     private sealed class TestInterconnectService : IInterconnectService
     {
+        public string ListenerStatusText => "已停止";
+        public int ListenerPort => 0;
+        public event EventHandler? ListenerStateChanged
+        {
+            add { }
+            remove { }
+        }
         public event EventHandler<InterconnectReceiveTextRecord>? TextReceived
         {
             add { }

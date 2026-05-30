@@ -4,6 +4,12 @@ namespace MyWireGuard.Core.Abstractions;
 
 public interface IInterconnectService : IAsyncDisposable
 {
+    string ListenerStatusText { get; }
+
+    int ListenerPort { get; }
+
+    event EventHandler? ListenerStateChanged;
+
     event EventHandler<InterconnectReceiveTextRecord>? TextReceived;
 
     event EventHandler<InterconnectReceiveFileRecord>? FileReceived;

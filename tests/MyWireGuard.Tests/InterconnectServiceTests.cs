@@ -79,6 +79,27 @@ public sealed class InterconnectServiceTests : IDisposable
         Assert.Empty(service.GetReceivedFileRecords());
     }
 
+    [Fact]
+    public async Task StartAndStopAsync_ShouldUpdateListenerStatusAndPort()
+    {
+        var logService = new TestLogService();
+        var receiveDirectory = Path.Combine(tempRoot, "recv");
+        await using var service = new InterconnectService(logService, receiveDirectory, 7727);
+
+        Assert.Equal("已停止", service.ListenerStatusText);
+        Assert.Equal(7727, service.ListenerPort);
+
+        await service.StartAsync(CancellationToken.None);
+
+        Assert.Equal("监听中", service.ListenerStatusText);
+        Assert.Equal(7727, service.ListenerPort);
+
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.Equal("已停止", service.ListenerStatusText);
+        Assert.Equal(7727, service.ListenerPort);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(tempRoot))

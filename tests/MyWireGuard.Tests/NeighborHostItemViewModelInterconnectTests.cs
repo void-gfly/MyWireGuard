@@ -131,6 +131,13 @@ public sealed class NeighborHostItemViewModelInterconnectTests : IDisposable
     private sealed class RecordingInterconnectService : IInterconnectService
     {
         public int SendFileCallCount { get; private set; }
+        public string ListenerStatusText => "已停止";
+        public int ListenerPort => 0;
+        public event EventHandler? ListenerStateChanged
+        {
+            add { }
+            remove { }
+        }
         public event EventHandler<InterconnectReceiveTextRecord>? TextReceived
         {
             add { }

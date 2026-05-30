@@ -101,6 +101,7 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         logService.EntryWritten += OnEntryWritten;
+        interconnectService.ListenerStateChanged += OnInterconnectListenerStateChanged;
         interconnectService.TextReceived += OnInterconnectTextReceived;
         interconnectService.FileReceived += OnInterconnectFileReceived;
     }
@@ -154,6 +155,12 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     public string PrivilegeStatus { get; }
+
+    public string InterconnectListenerStatus => interconnectService.ListenerStatusText;
+
+    public string InterconnectListenerPort => interconnectService.ListenerPort > 0
+        ? interconnectService.ListenerPort.ToString()
+        : "-";
 
     public string TrayStatusText
     {
@@ -568,9 +575,19 @@ public sealed class MainWindowViewModel : ObservableObject
         statusRefreshTimer.Stop();
         statusRefreshTimer.Tick -= OnStatusRefreshTimerTick;
         logService.EntryWritten -= OnEntryWritten;
+        interconnectService.ListenerStateChanged -= OnInterconnectListenerStateChanged;
         interconnectService.TextReceived -= OnInterconnectTextReceived;
         interconnectService.FileReceived -= OnInterconnectFileReceived;
         tunnelNeighbors.Dispose();
+    }
+
+    private void OnInterconnectListenerStateChanged(object? sender, EventArgs e)
+    {
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            RaisePropertyChanged(nameof(InterconnectListenerStatus));
+            RaisePropertyChanged(nameof(InterconnectListenerPort));
+        });
     }
 
     private void OnInterconnectTextReceived(object? sender, InterconnectReceiveTextRecord record)

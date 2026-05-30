@@ -24,6 +24,7 @@ public sealed class InterconnectService : IInterconnectService
     private TcpListener? listener;
     private CancellationTokenSource? listenerCancellationTokenSource;
     private Task? listenerTask;
+    private string listenerStatusText = "已停止";
 
     public InterconnectService(ILogService logService, string receiveDirectory, int port = InterconnectLimits.DefaultPort)
     {
@@ -31,6 +32,12 @@ public sealed class InterconnectService : IInterconnectService
         this.receiveDirectory = receiveDirectory;
         this.port = port;
     }
+
+    public string ListenerStatusText => listenerStatusText;
+
+    public int ListenerPort => port;
+
+    public event EventHandler? ListenerStateChanged;
 
     public event EventHandler<InterconnectReceiveTextRecord>? TextReceived;
 
@@ -64,6 +71,7 @@ public sealed class InterconnectService : IInterconnectService
             listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             listener.Start();
             listenerTask = Task.Run(() => AcceptLoopAsync(listener, listenerCancellationTokenSource.Token), CancellationToken.None);
+            SetListenerStatus("监听中");
             logService.WriteInfo($"Interconnect listener started on 0.0.0.0:{port}.");
         }
         catch
@@ -72,6 +80,7 @@ public sealed class InterconnectService : IInterconnectService
             listenerCancellationTokenSource = null;
             listener?.Stop();
             listener = null;
+            SetListenerStatus("启动失败");
             throw;
         }
         finally
@@ -99,6 +108,7 @@ public sealed class InterconnectService : IInterconnectService
             listenerTask = null;
             listenerCancellationTokenSource?.Dispose();
             listenerCancellationTokenSource = null;
+            SetListenerStatus("已停止");
             logService.WriteInfo($"Interconnect listener stopped on 0.0.0.0:{port}.");
         }
         finally
@@ -198,6 +208,17 @@ public sealed class InterconnectService : IInterconnectService
     {
         await StopAsync(CancellationToken.None).ConfigureAwait(false);
         lifecycleLock.Dispose();
+    }
+
+    private void SetListenerStatus(string statusText)
+    {
+        if (string.Equals(listenerStatusText, statusText, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        listenerStatusText = statusText;
+        ListenerStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private async Task AcceptLoopAsync(TcpListener tcpListener, CancellationToken cancellationToken)
