@@ -17,6 +17,22 @@ public sealed class SystemInteractionService : ISystemInteractionService
         Clipboard.SetText(text.Trim());
     }
 
+    public string GetClipboardText()
+    {
+        if (!Clipboard.ContainsText())
+        {
+            throw new InvalidOperationException("剪切板中没有可读取的文本。");
+        }
+
+        var text = Clipboard.GetText();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            throw new InvalidOperationException("剪切板中没有可读取的文本。");
+        }
+
+        return text;
+    }
+
     public void CopyFile(string path)
     {
         EnsureFileExists(path);

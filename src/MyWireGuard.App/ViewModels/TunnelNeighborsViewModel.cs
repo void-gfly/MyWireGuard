@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Net;
+using System.Text.Json;
 using System.Windows;
 using MyWireGuard.App.Services;
 using MyWireGuard.Core.Abstractions;
@@ -10,6 +11,11 @@ namespace MyWireGuard.App.ViewModels;
 
 public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
 {
+    private static readonly JsonSerializerOptions RemarkJsonOptions = new()
+    {
+        WriteIndented = true
+    };
+
     private readonly INeighborMetadataStore metadataStore;
     private readonly INetworkNeighborScanner scanner;
     private readonly IIPv4SubnetCalculator subnetCalculator;
@@ -58,6 +64,8 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
         ScanCommand = new AsyncRelayCommand(ScanAsync, CanScan);
         CancelScanCommand = new AsyncRelayCommand(CancelScanAsync, () => IsScanning);
         ToggleScanCommand = new AsyncRelayCommand(ToggleScanAsync);
+        CopySubnetRemarksCommand = new AsyncRelayCommand(CopySubnetRemarksAsync);
+        ImportRemarksFromClipboardCommand = new AsyncRelayCommand(ImportRemarksFromClipboardAsync);
     }
 
     public ObservableCollection<NeighborHostItemViewModel> Hosts { get; } = [];
@@ -67,6 +75,10 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
     public AsyncRelayCommand CancelScanCommand { get; }
 
     public AsyncRelayCommand ToggleScanCommand { get; }
+
+    public AsyncRelayCommand CopySubnetRemarksCommand { get; }
+
+    public AsyncRelayCommand ImportRemarksFromClipboardCommand { get; }
 
     public string ScanButtonContent => IsScanning ? "取消" : "扫描网段";
 
@@ -387,6 +399,110 @@ public sealed class TunnelNeighborsViewModel : ObservableObject, IDisposable
     private Task ToggleScanAsync()
     {
         return IsScanning ? CancelScanAsync() : ScanAsync();
+    }
+
+    private Task CopySubnetRemarksAsync()
+    {
+        try
+        {
+            var remarks = Hosts
+                .Where(host => !string.IsNullOrWhiteSpace(host.Remark))
+                .OrderBy(host => IPAddress.Parse(host.IpAddress), new IpAddressComparer())
+                .ToDictionary(host => host.IpAddress, host => host.Remark.Trim(), StringComparer.OrdinalIgnoreCase);
+
+            if (remarks.Count == 0)
+            {
+                throw new InvalidOperationException("当前网段没有可复制的备注名。");
+            }
+
+            var json = JsonSerializer.Serialize(remarks, RemarkJsonOptions);
+            systemInteractionService.CopyText(json);
+        }
+        catch (Exception exception)
+        {
+            messageService.ShowError(exception.Message, "复制网段备注名");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task ImportRemarksFromClipboardAsync()
+    {
+        try
+        {
+            if (currentProfile is null)
+            {
+                throw new InvalidOperationException("请先选择隧道。");
+            }
+
+            var importedRemarks = ReadRemarkMapFromClipboard();
+            if (importedRemarks.Count == 0)
+            {
+                throw new InvalidOperationException("剪切板 JSON 中没有可导入的备注名。");
+            }
+
+            var visibleHosts = await Application.Current.Dispatcher.InvokeAsync(() => Hosts.Select(host => host.ToModel()).ToList());
+            var changed = false;
+            foreach (var host in visibleHosts)
+            {
+                if (!importedRemarks.TryGetValue(host.IpAddress, out var importedRemark))
+                {
+                    continue;
+                }
+
+                var normalizedRemark = string.IsNullOrWhiteSpace(importedRemark) ? null : importedRemark.Trim();
+                if (string.Equals(host.Remark, normalizedRemark, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                host.Remark = normalizedRemark;
+                host.RemarkSource = normalizedRemark is null ? NeighborRemarkSource.None : NeighborRemarkSource.Manual;
+                changed = true;
+            }
+
+            if (!changed)
+            {
+                return;
+            }
+
+            currentMetadata ??= await metadataStore.GetAsync(currentProfile.Name).ConfigureAwait(false);
+            currentMetadata.TunnelName = currentProfile.Name;
+            currentMetadata.SubnetCidr = HasScannableSubnet ? SubnetDisplay : currentMetadata.SubnetCidr;
+            currentMetadata.Hosts.Clear();
+            currentMetadata.Hosts.AddRange(visibleHosts);
+            await metadataStore.SaveAsync(currentMetadata).ConfigureAwait(false);
+
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                ReplaceHosts(currentMetadata.Hosts);
+                RaiseSummaryPropertiesChanged();
+            });
+        }
+        catch (Exception exception)
+        {
+            messageService.ShowError(exception.Message, "从剪切板读取备注名");
+        }
+    }
+
+    private Dictionary<string, string?> ReadRemarkMapFromClipboard()
+    {
+        var text = systemInteractionService.GetClipboardText();
+        var imported = JsonSerializer.Deserialize<Dictionary<string, string?>>(text, RemarkJsonOptions)
+            ?? throw new InvalidOperationException("剪切板 JSON 不是有效的 IP 到备注名对象。");
+
+        var result = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (ipAddress, remark) in imported)
+        {
+            if (!IPAddress.TryParse(ipAddress, out _))
+            {
+                throw new InvalidOperationException($"备注名 JSON 包含无效 IP: {ipAddress}");
+            }
+
+            result[ipAddress] = remark;
+        }
+
+        return result;
     }
 
     private async Task RunAutomaticScanAsync()

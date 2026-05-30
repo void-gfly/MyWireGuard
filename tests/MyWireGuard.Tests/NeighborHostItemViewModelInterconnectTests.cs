@@ -171,6 +171,7 @@ public sealed class NeighborHostItemViewModelInterconnectTests : IDisposable
     private sealed class RecordingSystemInteractionService : ISystemInteractionService
     {
         public void CopyText(string text) { }
+        public string GetClipboardText() => string.Empty;
         public void CopyFile(string path) { }
         public void OpenRemoteDesktop(string ipAddress) { }
         public void OpenSsh(string ipAddress) { }

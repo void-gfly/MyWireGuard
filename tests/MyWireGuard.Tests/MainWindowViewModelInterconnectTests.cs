@@ -281,6 +281,7 @@ public sealed class MainWindowViewModelInterconnectTests
     private sealed class TestSystemInteractionService : ISystemInteractionService
     {
         public void CopyText(string text) { }
+        public string GetClipboardText() => string.Empty;
         public void CopyFile(string path) { }
         public void OpenRemoteDesktop(string ipAddress) { }
         public void OpenSsh(string ipAddress) { }

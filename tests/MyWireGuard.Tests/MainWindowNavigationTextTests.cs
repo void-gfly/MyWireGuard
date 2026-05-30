@@ -24,6 +24,14 @@ public sealed class MainWindowNavigationTextTests
     }
 
     [Fact]
+    public void TopStatusBar_ShouldBindToMachineName()
+    {
+        var xaml = ReadMainWindowXaml();
+
+        Assert.Contains("Text=\"{Binding MachineName}\"", xaml);
+    }
+
+    [Fact]
     public void SystemInfoPanel_ShouldContainInterconnectStatusAndPortBindings()
     {
         var xaml = ReadMainWindowXaml();

@@ -398,16 +398,11 @@
                             <Ellipse Width="6" Height="6" Margin="0,0,7,0" VerticalAlignment="Center">
                                 <Ellipse.Style>
                                     <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="{StaticResource StatusStartingBrush}" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding PrivilegeStatus}" Value="已使用管理员权限运行">
-                                                <Setter Property="Fill" Value="{StaticResource StatusRunningBrush}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
+                                        <Setter Property="Fill" Value="{StaticResource StatusRunningBrush}" />
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
-                            <TextBlock Text="{Binding PrivilegeStatus}"
+                            <TextBlock Text="{Binding MachineName}"
                                        FontSize="11"
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        TextTrimming="CharacterEllipsis" />
@@ -784,6 +779,8 @@
                                         </DataGrid.Resources>
                                         <DataGrid.RowStyle>
                                             <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                                <Setter Property="Tag"
+                                                        Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
                                                 <Setter Property="ContextMenu">
                                                     <Setter.Value>
                                                         <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
@@ -802,8 +799,10 @@
                                                                           Command="{Binding CopyNameCommand}" />
                                                                 <MenuItem Header="复制IP"
                                                                           Command="{Binding CopyIpCommand}" />
-                                                                <MenuItem Header="复制文件"
-                                                                          Command="{Binding CopyFileCommand}" />
+                                                                <MenuItem Header="复制网段备注名"
+                                                                          Command="{Binding PlacementTarget.Tag.TunnelNeighbors.CopySubnetRemarksCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                                                <MenuItem Header="从剪切板读取备注名"
+                                                                          Command="{Binding PlacementTarget.Tag.TunnelNeighbors.ImportRemarksFromClipboardCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                                             </MenuItem>
                                                             <MenuItem Header="操作">
                                                                 <MenuItem Header="打开文件"

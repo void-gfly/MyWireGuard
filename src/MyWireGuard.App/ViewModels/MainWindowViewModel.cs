@@ -81,6 +81,8 @@ public sealed class MainWindowViewModel : ObservableObject
             ? "运行时已就绪"
             : "应用目录中缺少 tunnel.dll";
 
+        MachineName = Environment.MachineName;
+
         PrivilegeStatus = privilegeService.IsElevated
             ? "已使用管理员权限运行"
             : "当前未以管理员权限运行";
@@ -155,6 +157,8 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     public string PrivilegeStatus { get; }
+
+    public string MachineName { get; }
 
     public string InterconnectListenerStatus => interconnectService.ListenerStatusText;
 

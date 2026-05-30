@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Threading;
+using System.Text.Json;
 using MyWireGuard.App.Services;
 using MyWireGuard.App.ViewModels;
 using MyWireGuard.Core.Abstractions;
@@ -107,6 +108,213 @@ public sealed class TunnelNeighborsViewModelTests
                 scanner.CompletePendingScans();
                 viewModel.Dispose();
             }
+        });
+    }
+
+    [Fact]
+    public void CopySubnetRemarksCommand_ShouldCopyIpRemarkJsonOnlyForNonEmptyRemarks()
+    {
+        RunOnStaThread(async () =>
+        {
+            EnsureApplication();
+
+            var metadataStore = new InMemoryNeighborMetadataStore();
+            metadataStore.Seed(new NeighborMetadata
+            {
+                TunnelName = "first",
+                SubnetCidr = "10.10.0.0/30",
+                LastScanCompletedAt = DateTimeOffset.UtcNow
+            }, new NeighborHost
+            {
+                IpAddress = "10.10.0.1",
+                Remark = "NAS",
+                RemarkSource = NeighborRemarkSource.Manual
+            }, new NeighborHost
+            {
+                IpAddress = "10.10.0.2",
+                Remark = "   ",
+                RemarkSource = NeighborRemarkSource.None
+            });
+
+            var systemInteractionService = new TestSystemInteractionService();
+            var viewModel = new TunnelNeighborsViewModel(
+                metadataStore,
+                new ControlledScanner(),
+                new FixedSubnetCalculator(),
+                new TestLogService(),
+                new TestMessageService(),
+                systemInteractionService,
+                new TestTextInputDialogService(),
+                new TestInterconnectService(),
+                new TestFileDialogService());
+
+            await viewModel.LoadTunnelAsync(CreateProfile("first", "10.10.0.2/30"), isConnected: true);
+            viewModel.CopySubnetRemarksCommand.Execute(null);
+            await WaitUntilAsync(() => systemInteractionService.CopiedText is not null);
+
+            var copied = JsonSerializer.Deserialize<Dictionary<string, string>>(systemInteractionService.CopiedText!);
+            Assert.NotNull(copied);
+            Assert.Equal("NAS", copied["10.10.0.1"]);
+            Assert.False(copied.ContainsKey("10.10.0.2"));
+        });
+    }
+
+    [Fact]
+    public void ImportRemarksFromClipboardCommand_ShouldUpdateMatchingIpsAndPreserveMissingIps()
+    {
+        RunOnStaThread(async () =>
+        {
+            EnsureApplication();
+
+            var metadataStore = new InMemoryNeighborMetadataStore();
+            metadataStore.Seed(new NeighborMetadata
+            {
+                TunnelName = "first",
+                SubnetCidr = "10.10.0.0/30",
+                LastScanCompletedAt = DateTimeOffset.UtcNow
+            }, new NeighborHost
+            {
+                IpAddress = "10.10.0.1",
+                Remark = "old-nas",
+                RemarkSource = NeighborRemarkSource.Manual
+            }, new NeighborHost
+            {
+                IpAddress = "10.10.0.2",
+                Remark = "keep-me",
+                RemarkSource = NeighborRemarkSource.Manual
+            });
+
+            var systemInteractionService = new TestSystemInteractionService
+            {
+                ClipboardText = """
+                {
+                  "10.10.0.1": "new-nas",
+                  "10.10.0.99": "ignored"
+                }
+                """
+            };
+            var viewModel = new TunnelNeighborsViewModel(
+                metadataStore,
+                new ControlledScanner(),
+                new FixedSubnetCalculator(),
+                new TestLogService(),
+                new TestMessageService(),
+                systemInteractionService,
+                new TestTextInputDialogService(),
+                new TestInterconnectService(),
+                new TestFileDialogService());
+
+            await viewModel.LoadTunnelAsync(CreateProfile("first", "10.10.0.2/30"), isConnected: true);
+            viewModel.ImportRemarksFromClipboardCommand.Execute(null);
+            await WaitUntilAsync(() => metadataStore.SaveCallCount > 0);
+
+            Assert.Equal("new-nas", viewModel.Hosts.Single(host => host.IpAddress == "10.10.0.1").Remark);
+            Assert.Equal("keep-me", viewModel.Hosts.Single(host => host.IpAddress == "10.10.0.2").Remark);
+            Assert.Equal("new-nas", metadataStore.GetRequired("first").Hosts.Single(host => host.IpAddress == "10.10.0.1").Remark);
+            Assert.Equal("keep-me", metadataStore.GetRequired("first").Hosts.Single(host => host.IpAddress == "10.10.0.2").Remark);
+        });
+    }
+
+    [Fact]
+    public void ImportRemarksFromClipboardCommand_ShouldClearRemarkWhenJsonValueIsEmptyOrNull()
+    {
+        RunOnStaThread(async () =>
+        {
+            EnsureApplication();
+
+            var metadataStore = new InMemoryNeighborMetadataStore();
+            metadataStore.Seed(new NeighborMetadata
+            {
+                TunnelName = "first",
+                SubnetCidr = "10.10.0.0/30",
+                LastScanCompletedAt = DateTimeOffset.UtcNow
+            }, new NeighborHost
+            {
+                IpAddress = "10.10.0.1",
+                Remark = "clear-null",
+                RemarkSource = NeighborRemarkSource.Manual
+            }, new NeighborHost
+            {
+                IpAddress = "10.10.0.2",
+                Remark = "clear-empty",
+                RemarkSource = NeighborRemarkSource.Manual
+            });
+
+            var systemInteractionService = new TestSystemInteractionService
+            {
+                ClipboardText = """
+                {
+                  "10.10.0.1": null,
+                  "10.10.0.2": ""
+                }
+                """
+            };
+            var viewModel = new TunnelNeighborsViewModel(
+                metadataStore,
+                new ControlledScanner(),
+                new FixedSubnetCalculator(),
+                new TestLogService(),
+                new TestMessageService(),
+                systemInteractionService,
+                new TestTextInputDialogService(),
+                new TestInterconnectService(),
+                new TestFileDialogService());
+
+            await viewModel.LoadTunnelAsync(CreateProfile("first", "10.10.0.2/30"), isConnected: true);
+            viewModel.ImportRemarksFromClipboardCommand.Execute(null);
+            await WaitUntilAsync(() => metadataStore.SaveCallCount > 0);
+
+            Assert.Equal(string.Empty, viewModel.Hosts.Single(host => host.IpAddress == "10.10.0.1").Remark);
+            Assert.Equal(string.Empty, viewModel.Hosts.Single(host => host.IpAddress == "10.10.0.2").Remark);
+            Assert.Null(metadataStore.GetRequired("first").Hosts.Single(host => host.IpAddress == "10.10.0.1").Remark);
+            Assert.Null(metadataStore.GetRequired("first").Hosts.Single(host => host.IpAddress == "10.10.0.2").Remark);
+        });
+    }
+
+    [Fact]
+    public void ImportRemarksFromClipboardCommand_ShouldShowErrorAndNotSaveWhenJsonIsInvalid()
+    {
+        RunOnStaThread(async () =>
+        {
+            EnsureApplication();
+
+            var metadataStore = new InMemoryNeighborMetadataStore();
+            metadataStore.Seed(new NeighborMetadata
+            {
+                TunnelName = "first",
+                SubnetCidr = "10.10.0.0/30",
+                LastScanCompletedAt = DateTimeOffset.UtcNow
+            }, new NeighborHost
+            {
+                IpAddress = "10.10.0.1",
+                Remark = "old",
+                RemarkSource = NeighborRemarkSource.Manual
+            });
+
+            var messageService = new TestMessageService();
+            var systemInteractionService = new TestSystemInteractionService
+            {
+                ClipboardText = "[\"not-an-object\"]"
+            };
+            var viewModel = new TunnelNeighborsViewModel(
+                metadataStore,
+                new ControlledScanner(),
+                new FixedSubnetCalculator(),
+                new TestLogService(),
+                messageService,
+                systemInteractionService,
+                new TestTextInputDialogService(),
+                new TestInterconnectService(),
+                new TestFileDialogService());
+
+            await viewModel.LoadTunnelAsync(CreateProfile("first", "10.10.0.2/30"), isConnected: true);
+            metadataStore.ResetSaveCallCount();
+
+            viewModel.ImportRemarksFromClipboardCommand.Execute(null);
+            await WaitUntilAsync(() => messageService.Errors.Count > 0);
+
+            Assert.Equal(0, metadataStore.SaveCallCount);
+            Assert.Equal("old", viewModel.Hosts.Single(host => host.IpAddress == "10.10.0.1").Remark);
         });
     }
 
@@ -237,6 +445,8 @@ public sealed class TunnelNeighborsViewModelTests
     {
         private readonly Dictionary<string, NeighborMetadata> metadata = new(StringComparer.OrdinalIgnoreCase);
 
+        public int SaveCallCount { get; private set; }
+
         public void Seed(NeighborMetadata value, params NeighborHost[] hosts)
         {
             foreach (var host in hosts)
@@ -265,8 +475,19 @@ public sealed class TunnelNeighborsViewModelTests
 
         public Task SaveAsync(NeighborMetadata value, CancellationToken cancellationToken = default)
         {
+            SaveCallCount++;
             metadata[value.TunnelName] = value;
             return Task.CompletedTask;
+        }
+
+        public NeighborMetadata GetRequired(string tunnelName)
+        {
+            return metadata[tunnelName];
+        }
+
+        public void ResetSaveCallCount()
+        {
+            SaveCallCount = 0;
         }
     }
 
@@ -310,12 +531,15 @@ public sealed class TunnelNeighborsViewModelTests
 
     private sealed class TestMessageService : IMessageService
     {
+        public List<string> Errors { get; } = [];
+
         public void ShowInfo(string message, string title)
         {
         }
 
         public void ShowError(string message, string title)
         {
+            Errors.Add(message);
         }
 
         public bool Confirm(string message, string title)
@@ -331,8 +555,18 @@ public sealed class TunnelNeighborsViewModelTests
 
     private sealed class TestSystemInteractionService : ISystemInteractionService
     {
+        public string? ClipboardText { get; set; }
+
+        public string? CopiedText { get; private set; }
+
         public void CopyText(string text)
         {
+            CopiedText = text;
+        }
+
+        public string GetClipboardText()
+        {
+            return ClipboardText ?? string.Empty;
         }
 
         public void CopyFile(string path)
