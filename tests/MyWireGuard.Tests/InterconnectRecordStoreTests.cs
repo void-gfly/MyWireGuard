@@ -13,7 +13,6 @@ public sealed class InterconnectRecordStoreTests : IDisposable
     {
         tempRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempRoot);
-        Environment.SetEnvironmentVariable("LOCALAPPDATA", tempRoot);
     }
 
     [Fact]
@@ -63,7 +62,7 @@ public sealed class InterconnectRecordStoreTests : IDisposable
 
     private FileInterconnectRecordStore CreateStore()
     {
-        return new FileInterconnectRecordStore(new AppRuntimePaths(), new TestLogService());
+        return new FileInterconnectRecordStore(new AppRuntimePaths(Path.Combine(tempRoot, "MyWireGuard")), new TestLogService());
     }
 
     private sealed class TestLogService : ILogService

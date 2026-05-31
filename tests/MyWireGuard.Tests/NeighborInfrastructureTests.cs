@@ -207,8 +207,7 @@ public sealed class NeighborInfrastructureTests
 
     private static AppRuntimePaths CreateRuntimePaths(string rootPath)
     {
-        Environment.SetEnvironmentVariable("LOCALAPPDATA", rootPath);
-        return new AppRuntimePaths();
+        return new AppRuntimePaths(Path.Combine(rootPath, "MyWireGuard"));
     }
 
     private sealed class SingleHostSubnetCalculator : IIPv4SubnetCalculator

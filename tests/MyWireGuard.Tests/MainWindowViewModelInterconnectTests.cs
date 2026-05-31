@@ -170,6 +170,60 @@ public sealed class MainWindowViewModelInterconnectTests
         });
     }
 
+    [Fact]
+    public void ToggleTunnelCommand_ShouldRemoveService_WhenStartedTunnelIsStoppedFromUi()
+    {
+        RunOnStaThread(async () =>
+        {
+            EnsureApplication();
+
+            var tunnelServiceManager = new FakeTunnelServiceManager();
+            var viewModel = CreateViewModel(tunnelServiceManager, new FakeInterconnectService());
+            viewModel.SelectedTunnel = new TunnelItemViewModel(CreateProfile("demo"), TunnelStatus.Started);
+
+            try
+            {
+                viewModel.ToggleTunnelCommand.Execute(null);
+                await WaitUntilAsync(() => tunnelServiceManager.RemovedTunnelNames.Contains("demo"));
+
+                Assert.Empty(tunnelServiceManager.StoppedTunnelNames);
+                Assert.Contains("demo", tunnelServiceManager.RemovedTunnelNames);
+            }
+            finally
+            {
+                viewModel.Shutdown();
+            }
+        });
+    }
+
+    [Fact]
+    public void StopActiveTunnelsAsync_ShouldRemoveActiveServicesToPreventAutoRestart()
+    {
+        RunOnStaThread(async () =>
+        {
+            EnsureApplication();
+
+            var tunnelServiceManager = new FakeTunnelServiceManager();
+            tunnelServiceManager.SetStatus("started", TunnelStatus.Started);
+            tunnelServiceManager.SetStatus("stopped", TunnelStatus.Stopped);
+            var configStore = new FakeConfigStore();
+            configStore.SeedProfiles(CreateProfile("started"), CreateProfile("stopped"));
+            var viewModel = CreateViewModel(tunnelServiceManager, new FakeInterconnectService(), configStore);
+
+            try
+            {
+                await viewModel.StopActiveTunnelsAsync();
+
+                Assert.Equal(["started"], tunnelServiceManager.RemovedTunnelNames);
+                Assert.Empty(tunnelServiceManager.StoppedTunnelNames);
+            }
+            finally
+            {
+                viewModel.Shutdown();
+            }
+        });
+    }
+
     private static void EnsureApplication()
     {
         if (Application.Current is null)
@@ -214,6 +268,58 @@ public sealed class MainWindowViewModelInterconnectTests
             new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
         return Task.CompletedTask;
+    }
+
+    private static MainWindowViewModel CreateViewModel(
+        FakeTunnelServiceManager tunnelServiceManager,
+        FakeInterconnectService interconnectService,
+        FakeConfigStore? configStore = null)
+    {
+        return new MainWindowViewModel(
+            configStore ?? new FakeConfigStore(),
+            tunnelServiceManager,
+            new FakeKeypairService(),
+            new TestLogService(),
+            new FakePrivilegeService(),
+            new TunnelNeighborsViewModel(
+                new FakeNeighborMetadataStore(),
+                new FakeScanner(),
+                new FakeSubnetCalculator(),
+                new TestLogService(),
+                new TestMessageService(),
+                new TestSystemInteractionService(),
+                new TestTextInputDialogService(),
+                interconnectService,
+                new FakeFileDialogService()),
+            new FakeFileDialogService(),
+            new TestMessageService(),
+            interconnectService,
+            new TestSystemInteractionService());
+    }
+
+    private static TunnelProfile CreateProfile(string name)
+    {
+        return new TunnelProfile
+        {
+            Name = name,
+            ConfigPath = $@"C:\Temp\{name}.conf"
+        };
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> predicate)
+    {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            await PumpDispatcherAsync();
+            if (predicate())
+            {
+                return;
+            }
+
+            await Task.Delay(10);
+        }
+
+        throw new TimeoutException("Timed out waiting for view model operation.");
     }
 
     private sealed class FakeInterconnectService : IInterconnectService
@@ -275,24 +381,56 @@ public sealed class MainWindowViewModelInterconnectTests
 
     private sealed class FakeConfigStore : IConfigStore
     {
-        public Task<IReadOnlyList<TunnelProfile>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<TunnelProfile>>([]);
+        private readonly List<TunnelProfile> profiles = [];
+
+        public Task<IReadOnlyList<TunnelProfile>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<TunnelProfile>>(profiles.ToArray());
         public Task<TunnelProfile?> GetAsync(string name, CancellationToken cancellationToken = default) => Task.FromResult<TunnelProfile?>(null);
         public Task<TunnelProfile> SaveAsync(TunnelProfile profile, CancellationToken cancellationToken = default) => Task.FromResult(profile);
         public Task<TunnelProfile> ImportAsync(string sourcePath, CancellationToken cancellationToken = default) => Task.FromResult(new TunnelProfile());
         public Task ExportAsync(string name, string destinationPath, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task DeleteAsync(string name, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public string GetConfigPath(string name) => name;
+
+        public void SeedProfiles(params TunnelProfile[] values)
+        {
+            profiles.Clear();
+            profiles.AddRange(values);
+        }
     }
 
     private sealed class FakeTunnelServiceManager : ITunnelServiceManager
     {
-        public Task<TunnelStatus> GetStatusAsync(string tunnelName, CancellationToken cancellationToken = default) => Task.FromResult(TunnelStatus.Stopped);
+        private readonly Dictionary<string, TunnelStatus> statuses = new(StringComparer.OrdinalIgnoreCase);
+
+        public List<string> StoppedTunnelNames { get; } = [];
+        public List<string> RemovedTunnelNames { get; } = [];
+
+        public Task<TunnelStatus> GetStatusAsync(string tunnelName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(statuses.TryGetValue(tunnelName, out var status) ? status : TunnelStatus.Stopped);
+        }
+
         public Task EnsureServiceConfigurationAsync(TunnelProfile profile, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task StartAsync(TunnelProfile profile, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task StopAsync(string tunnelName, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task RemoveAsync(string tunnelName, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task StopAsync(string tunnelName, CancellationToken cancellationToken = default)
+        {
+            StoppedTunnelNames.Add(tunnelName);
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveAsync(string tunnelName, CancellationToken cancellationToken = default)
+        {
+            RemovedTunnelNames.Add(tunnelName);
+            return Task.CompletedTask;
+        }
+
         public string GetServiceName(string tunnelName) => tunnelName;
         public bool IsRuntimeAvailable() => true;
+
+        public void SetStatus(string tunnelName, TunnelStatus status)
+        {
+            statuses[tunnelName] = status;
+        }
     }
 
     private sealed class FakeKeypairService : IKeypairService

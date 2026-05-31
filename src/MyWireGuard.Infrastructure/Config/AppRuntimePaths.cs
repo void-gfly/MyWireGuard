@@ -3,11 +3,14 @@ namespace MyWireGuard.Infrastructure.Config;
 public sealed class AppRuntimePaths
 {
     public AppRuntimePaths()
-    {
-        var baseDirectory = Path.Combine(
+        : this(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "MyWireGuard");
+            "MyWireGuard"))
+    {
+    }
 
+    public AppRuntimePaths(string baseDirectory)
+    {
         BaseDirectory = baseDirectory;
         ConfigDirectory = Path.Combine(baseDirectory, "Configs");
         RuntimeDirectory = Path.Combine(baseDirectory, "Runtime");

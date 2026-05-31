@@ -391,7 +391,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
         try
         {
-            await tunnelServiceManager.StopAsync(SelectedTunnel.Name).ConfigureAwait(false);
+            await tunnelServiceManager.RemoveAsync(SelectedTunnel.Name).ConfigureAwait(false);
             await RefreshAsync().ConfigureAwait(false);
         }
         catch (Exception exception)
@@ -663,12 +663,12 @@ public sealed class MainWindowViewModel : ObservableObject
 
             try
             {
-                await tunnelServiceManager.StopAsync(profile.Name).ConfigureAwait(false);
-                logService.WriteInfo($"Stopped tunnel '{profile.Name}' during application shutdown.");
+                await tunnelServiceManager.RemoveAsync(profile.Name).ConfigureAwait(false);
+                logService.WriteInfo($"Removed service for tunnel '{profile.Name}' during application shutdown.");
             }
             catch (Exception exception)
             {
-                logService.WriteError($"Failed to stop tunnel '{profile.Name}' during shutdown: {exception.Message}");
+                logService.WriteError($"Failed to remove service for tunnel '{profile.Name}' during shutdown: {exception.Message}");
             }
         }
     }

@@ -22,8 +22,10 @@ public sealed class InterconnectService : IInterconnectService
     private readonly IInterconnectRecordStore? recordStore;
     private readonly int port;
     private readonly Lock recordsLock = new();
+    private readonly Lock clientTasksLock = new();
     private readonly List<InterconnectReceiveTextRecord> textRecords = [];
     private readonly List<InterconnectReceiveFileRecord> fileRecords = [];
+    private readonly HashSet<Task> clientTasks = [];
     private readonly SemaphoreSlim lifecycleLock = new(1, 1);
     private TcpListener? listener;
     private CancellationTokenSource? listenerCancellationTokenSource;
@@ -90,7 +92,6 @@ public sealed class InterconnectService : IInterconnectService
             Directory.CreateDirectory(receiveDirectory);
             listenerCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             listener = new TcpListener(IPAddress.Any, port);
-            listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             listener.Start();
             var startedListener = listener;
             var startedCancellationTokenSource = listenerCancellationTokenSource;
@@ -153,6 +154,12 @@ public sealed class InterconnectService : IInterconnectService
             {
             }
         }
+
+        var pendingClientTasks = GetClientTasksSnapshot();
+        if (pendingClientTasks.Length > 0)
+        {
+            await Task.WhenAll(pendingClientTasks).WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public async Task SendTextAsync(string ipAddress, int port, string text, CancellationToken cancellationToken)
@@ -168,7 +175,7 @@ public sealed class InterconnectService : IInterconnectService
         BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(1), payload.Length);
 
         using var client = new TcpClient(AddressFamily.InterNetwork);
-        await client.ConnectAsync(IPAddress.Parse(ipAddress), port, cancellationToken).ConfigureAwait(false);
+        await ConnectAsync(client, ipAddress, port, "text", cancellationToken).ConfigureAwait(false);
         await using var stream = client.GetStream();
         await stream.WriteAsync(header, cancellationToken).ConfigureAwait(false);
         await stream.WriteAsync(payload, cancellationToken).ConfigureAwait(false);
@@ -202,7 +209,7 @@ public sealed class InterconnectService : IInterconnectService
         BinaryPrimitives.WriteInt64LittleEndian(header.AsSpan(1 + sizeof(int) + fileNameBytes.Length), fileInfo.Length);
 
         using var client = new TcpClient(AddressFamily.InterNetwork);
-        await client.ConnectAsync(IPAddress.Parse(ipAddress), port, cancellationToken).ConfigureAwait(false);
+        await ConnectAsync(client, ipAddress, port, "file", cancellationToken).ConfigureAwait(false);
         await using var networkStream = client.GetStream();
         await networkStream.WriteAsync(header, cancellationToken).ConfigureAwait(false);
 
@@ -226,6 +233,21 @@ public sealed class InterconnectService : IInterconnectService
 
         await networkStream.FlushAsync(cancellationToken).ConfigureAwait(false);
         logService.WriteInfo($"Interconnect file sent to {ipAddress}:{port}: {fileInfo.Name}.");
+    }
+
+    private async Task ConnectAsync(TcpClient client, string ipAddress, int port, string operation, CancellationToken cancellationToken)
+    {
+        var targetAddress = IPAddress.Parse(ipAddress);
+        try
+        {
+            await client.ConnectAsync(targetAddress, port, cancellationToken).ConfigureAwait(false);
+            logService.WriteInfo($"Interconnect {operation} connected to {ipAddress}:{port} from {client.Client.LocalEndPoint}.");
+        }
+        catch (SocketException exception)
+        {
+            logService.WriteError($"Interconnect {operation} connect failed to {ipAddress}:{port}: {exception.SocketErrorCode} ({exception.NativeErrorCode}) {exception.Message}");
+            throw new InvalidOperationException($"连接互联主机 {ipAddress}:{port} 失败: {exception.SocketErrorCode} ({exception.NativeErrorCode}) {exception.Message}", exception);
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -253,7 +275,7 @@ public sealed class InterconnectService : IInterconnectService
             try
             {
                 client = await tcpListener.AcceptTcpClientAsync(cancellationToken).ConfigureAwait(false);
-                _ = Task.Run(() => HandleClientAsync(client, cancellationToken), CancellationToken.None);
+                TrackClientTask(Task.Run(() => HandleClientAsync(client, CancellationToken.None), CancellationToken.None));
             }
             catch (OperationCanceledException)
             {
@@ -268,6 +290,34 @@ public sealed class InterconnectService : IInterconnectService
                 logService.WriteError($"Interconnect accept failed: {exception.Message}");
                 client?.Dispose();
             }
+        }
+    }
+
+    private void TrackClientTask(Task clientTask)
+    {
+        lock (clientTasksLock)
+        {
+            clientTasks.Add(clientTask);
+        }
+
+        _ = clientTask.ContinueWith(
+            completedTask =>
+            {
+                lock (clientTasksLock)
+                {
+                    clientTasks.Remove(completedTask);
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+    }
+
+    private Task[] GetClientTasksSnapshot()
+    {
+        lock (clientTasksLock)
+        {
+            return clientTasks.ToArray();
         }
     }
 

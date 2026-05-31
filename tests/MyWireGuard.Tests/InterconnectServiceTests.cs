@@ -13,12 +13,15 @@ public sealed class InterconnectServiceTests : IDisposable
 {
     private const byte TextMessageType = 1;
     private const byte FileMessageType = 2;
+    private static int nextPort = 20000;
     private readonly string tempRoot;
+    private readonly int port;
 
     public InterconnectServiceTests()
     {
         tempRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempRoot);
+        port = Interlocked.Increment(ref nextPort);
     }
 
     [Fact]
@@ -26,10 +29,10 @@ public sealed class InterconnectServiceTests : IDisposable
     {
         var logService = new TestLogService();
         var receiveDirectory = Path.Combine(tempRoot, "recv");
-        await using var service = new InterconnectService(logService, receiveDirectory, 7727);
+        await using var service = new InterconnectService(logService, receiveDirectory, port);
         await service.StartAsync(CancellationToken.None);
 
-        await service.SendTextAsync("127.0.0.1", 7727, "hello from test", CancellationToken.None);
+        await service.SendTextAsync("127.0.0.1", port, "hello from test", CancellationToken.None);
         var received = await WaitForAsync(
             () => service.GetReceivedTextRecords().Count == 1,
             service.GetReceivedTextRecords,
@@ -48,11 +51,11 @@ public sealed class InterconnectServiceTests : IDisposable
         var sourcePath = Path.Combine(tempRoot, "demo.txt");
         await File.WriteAllTextAsync(sourcePath, "payload", CancellationToken.None);
 
-        await using var service = new InterconnectService(logService, receiveDirectory, 7727);
+        await using var service = new InterconnectService(logService, receiveDirectory, port);
         await service.StartAsync(CancellationToken.None);
 
-        await service.SendFileAsync("127.0.0.1", 7727, sourcePath, null, CancellationToken.None);
-        await service.SendFileAsync("127.0.0.1", 7727, sourcePath, null, CancellationToken.None);
+        await service.SendFileAsync("127.0.0.1", port, sourcePath, null, CancellationToken.None);
+        await service.SendFileAsync("127.0.0.1", port, sourcePath, null, CancellationToken.None);
         var received = await WaitForAsync(
             () => service.GetReceivedFileRecords().Count == 2,
             service.GetReceivedFileRecords,
@@ -76,14 +79,32 @@ public sealed class InterconnectServiceTests : IDisposable
             stream.SetLength(InterconnectLimits.MaxFileSizeBytes + 1);
         }
 
-        await using var service = new InterconnectService(logService, receiveDirectory, 7727);
+        await using var service = new InterconnectService(logService, receiveDirectory, port);
         await service.StartAsync(CancellationToken.None);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.SendFileAsync("127.0.0.1", 7727, sourcePath, null, CancellationToken.None));
+            service.SendFileAsync("127.0.0.1", port, sourcePath, null, CancellationToken.None));
 
         Assert.Contains("500MB", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Empty(service.GetReceivedFileRecords());
+    }
+
+    [Fact]
+    public async Task SendTextAsync_ShouldIncludeTargetAndSocketCodeWhenConnectFails()
+    {
+        var logService = new TestLogService();
+        var receiveDirectory = Path.Combine(tempRoot, "recv");
+        await using var service = new InterconnectService(logService, receiveDirectory, port);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SendTextAsync("127.0.0.1", port, "hello", CancellationToken.None));
+
+        Assert.Contains($"127.0.0.1:{port}", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("ConnectionRefused", exception.Message, StringComparison.Ordinal);
+        Assert.Contains(logService.GetEntries(), entry =>
+            entry.Level == "Error"
+            && entry.Message.Contains($"127.0.0.1:{port}", StringComparison.Ordinal)
+            && entry.Message.Contains("ConnectionRefused", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -91,11 +112,11 @@ public sealed class InterconnectServiceTests : IDisposable
     {
         var logService = new TestLogService();
         var receiveDirectory = Path.Combine(tempRoot, "recv");
-        await using var service = new InterconnectService(logService, receiveDirectory, 7727);
+        await using var service = new InterconnectService(logService, receiveDirectory, port);
         await service.StartAsync(CancellationToken.None);
         var client = new InterconnectLocalInfoClient();
 
-        var localInfo = await client.TryGetLocalInfoAsync("127.0.0.1", 7727, 1000, CancellationToken.None);
+        var localInfo = await client.TryGetLocalInfoAsync("127.0.0.1", port, 1000, CancellationToken.None);
 
         Assert.NotNull(localInfo);
         Assert.False(string.IsNullOrWhiteSpace(localInfo.ComputerName));
@@ -110,20 +131,32 @@ public sealed class InterconnectServiceTests : IDisposable
     {
         var logService = new TestLogService();
         var receiveDirectory = Path.Combine(tempRoot, "recv");
-        await using var service = new InterconnectService(logService, receiveDirectory, 7727);
+        await using var service = new InterconnectService(logService, receiveDirectory, port);
 
         Assert.Equal("已停止", service.ListenerStatusText);
-        Assert.Equal(7727, service.ListenerPort);
+        Assert.Equal(port, service.ListenerPort);
 
         await service.StartAsync(CancellationToken.None);
 
         Assert.Equal("监听中", service.ListenerStatusText);
-        Assert.Equal(7727, service.ListenerPort);
+        Assert.Equal(port, service.ListenerPort);
 
         await service.StopAsync(CancellationToken.None);
 
         Assert.Equal("已停止", service.ListenerStatusText);
-        Assert.Equal(7727, service.ListenerPort);
+        Assert.Equal(port, service.ListenerPort);
+    }
+
+    [Fact]
+    public async Task StartAsync_ShouldRejectSecondListenerOnSamePort()
+    {
+        var firstReceiveDirectory = Path.Combine(tempRoot, "recv-first");
+        var secondReceiveDirectory = Path.Combine(tempRoot, "recv-second");
+        await using var firstService = new InterconnectService(new TestLogService(), firstReceiveDirectory, port);
+        await firstService.StartAsync(CancellationToken.None);
+        await using var secondService = new InterconnectService(new TestLogService(), secondReceiveDirectory, port);
+
+        await Assert.ThrowsAnyAsync<SocketException>(() => secondService.StartAsync(CancellationToken.None));
     }
 
     [Fact]
@@ -131,14 +164,14 @@ public sealed class InterconnectServiceTests : IDisposable
     {
         var logService = new TestLogService();
         var receiveDirectory = Path.Combine(tempRoot, "recv");
-        await using var service = new InterconnectService(logService, receiveDirectory, 7727);
+        await using var service = new InterconnectService(logService, receiveDirectory, port);
         await service.StartAsync(CancellationToken.None);
 
         var payload = new byte[1 + sizeof(int)];
         payload[0] = TextMessageType;
         BinaryPrimitives.WriteInt32LittleEndian(payload.AsSpan(1), 0);
 
-        await SendRawMessageAsync(7727, payload);
+        await SendRawMessageAsync(port, payload);
 
         var entries = await WaitForAsync(
             () => logService.GetEntries().Any(entry => entry.Level == "Error" && entry.Message.Contains("接收文本长度无效", StringComparison.Ordinal)),
@@ -154,14 +187,14 @@ public sealed class InterconnectServiceTests : IDisposable
     {
         var logService = new TestLogService();
         var receiveDirectory = Path.Combine(tempRoot, "recv");
-        await using var service = new InterconnectService(logService, receiveDirectory, 7727);
+        await using var service = new InterconnectService(logService, receiveDirectory, port);
         await service.StartAsync(CancellationToken.None);
 
         var payload = new byte[1 + sizeof(int)];
         payload[0] = FileMessageType;
         BinaryPrimitives.WriteInt32LittleEndian(payload.AsSpan(1), 0);
 
-        await SendRawMessageAsync(7727, payload);
+        await SendRawMessageAsync(port, payload);
 
         var entries = await WaitForAsync(
             () => logService.GetEntries().Any(entry => entry.Level == "Error" && entry.Message.Contains("接收文件名长度无效", StringComparison.Ordinal)),
@@ -177,7 +210,7 @@ public sealed class InterconnectServiceTests : IDisposable
     {
         var logService = new TestLogService();
         var receiveDirectory = Path.Combine(tempRoot, "recv");
-        await using var service = new InterconnectService(logService, receiveDirectory, 7727);
+        await using var service = new InterconnectService(logService, receiveDirectory, port);
         await service.StartAsync(CancellationToken.None);
 
         var payload = new byte[1 + sizeof(int) + 1 + sizeof(long)];
@@ -186,7 +219,7 @@ public sealed class InterconnectServiceTests : IDisposable
         payload[1 + sizeof(int)] = (byte)'a';
         BinaryPrimitives.WriteInt64LittleEndian(payload.AsSpan(1 + sizeof(int) + 1), -1);
 
-        await SendRawMessageAsync(7727, payload);
+        await SendRawMessageAsync(port, payload);
 
         var entries = await WaitForAsync(
             () => logService.GetEntries().Any(entry => entry.Level == "Error" && entry.Message.Contains("接收文件大小无效", StringComparison.Ordinal)),
@@ -202,7 +235,7 @@ public sealed class InterconnectServiceTests : IDisposable
     {
         var logService = new TestLogService();
         var receiveDirectory = Path.Combine(tempRoot, "recv");
-        await using var service = new InterconnectService(logService, receiveDirectory, 7727);
+        await using var service = new InterconnectService(logService, receiveDirectory, port);
         await service.StartAsync(CancellationToken.None);
 
         var payload = new byte[1 + sizeof(int) + 2];
@@ -211,7 +244,7 @@ public sealed class InterconnectServiceTests : IDisposable
         payload[1 + sizeof(int)] = (byte)'o';
         payload[1 + sizeof(int) + 1] = (byte)'k';
 
-        await SendRawMessageAsync(7727, payload);
+        await SendRawMessageAsync(port, payload);
 
         var entries = await WaitForAsync(
             () => logService.GetEntries().Any(entry => entry.Level == "Error" && entry.Message.Contains("互联消息数据提前结束", StringComparison.Ordinal)),
@@ -232,7 +265,7 @@ public sealed class InterconnectServiceTests : IDisposable
             new TestLogService(),
             receiveDirectory,
             new FileInterconnectRecordStore(runtimePaths, new TestLogService()),
-            7727))
+            port))
         {
             await service.StartAsync(CancellationToken.None);
 
@@ -240,8 +273,8 @@ public sealed class InterconnectServiceTests : IDisposable
             {
                 var sourcePath = Path.Combine(tempRoot, $"file-{index}.txt");
                 await File.WriteAllTextAsync(sourcePath, $"payload-{index}", CancellationToken.None);
-                await service.SendTextAsync("127.0.0.1", 7727, $"text-{index}", CancellationToken.None);
-                await service.SendFileAsync("127.0.0.1", 7727, sourcePath, null, CancellationToken.None);
+                await service.SendTextAsync("127.0.0.1", port, $"text-{index}", CancellationToken.None);
+                await service.SendFileAsync("127.0.0.1", port, sourcePath, null, CancellationToken.None);
             }
 
             await WaitForAsync(
@@ -303,8 +336,7 @@ public sealed class InterconnectServiceTests : IDisposable
 
     private static AppRuntimePaths CreateRuntimePaths(string rootPath)
     {
-        Environment.SetEnvironmentVariable("LOCALAPPDATA", rootPath);
-        return new AppRuntimePaths();
+        return new AppRuntimePaths(Path.Combine(rootPath, "MyWireGuard"));
     }
 
     private static async Task SendRawMessageAsync(int port, ReadOnlyMemory<byte> payload)

@@ -70,6 +70,18 @@ public partial class App : System.Windows.Application
             Path.Combine(AppContext.BaseDirectory, "Data", "RecvFile"),
 			interconnectRecordStore,
             InterconnectLimits.DefaultPort);
+        try
+        {
+            new InterconnectFirewallRuleManager()
+                .EnsureInboundRuleAsync(InterconnectLimits.DefaultPort, Environment.ProcessPath ?? string.Empty, CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
+            logService.WriteInfo($"Interconnect firewall inbound rule ensured for TCP {InterconnectLimits.DefaultPort}.");
+        }
+        catch (Exception exception)
+        {
+            logService.WriteError($"Failed to ensure interconnect firewall inbound rule: {exception.Message}");
+        }
         interconnectService.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
 		var tunnelNeighbors = new TunnelNeighborsViewModel(
 			neighborMetadataStore,
@@ -147,4 +159,3 @@ public partial class App : System.Windows.Application
 		base.OnExit(e);
 	}
 }
-
