@@ -35,7 +35,7 @@
     <ServiceHostProject>..\MyWireGuard.ServiceHost\MyWireGuard.ServiceHost.csproj</ServiceHostProject>
     <ServiceHostBuildOutputDir>..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\</ServiceHostBuildOutputDir>
     <ServiceHostBuildOutputDir Condition="'$(RuntimeIdentifier)' != ''">..\MyWireGuard.ServiceHost\bin\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)\</ServiceHostBuildOutputDir>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
   </PropertyGroup>
 
   <Target Name="CopyRuntimeDlls" AfterTargets="Build">
